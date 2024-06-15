@@ -67,7 +67,15 @@ Both deployment options use a common CloudFormation script that creates the foll
 
 ## Production-like deployment Overview
 
-The production-like deployment demonstrates using containers in Elastic Container Service (ECS) and Lambda to support many users and an evolving document base.  A Lambda function runs as a custom resource from the CloudFormation stack to initialize the OpenSearch cluster with the embedding model.  A document ingestion pipeline uses S3 event notifications to Simple Queue Service (SQS) to a Lambda function that handles documents being added to or removed from S3 by updating the OpenSearch indices based on S3 events.  The use of SQS limits the concurrency of the OpenSearch Lambda indexing function to no more than two instances, which minimizes the poential for exceeding the capacity of the OpenSearch cluster.  The web front end runs in a container on ECS Fargate behind an Application Load Balancer (ALB).
+The production-like deployment demonstrates using containers in Elastic Container Service (ECS) and Lambda to support many users and an evolving document base.
+
+A Lambda function runs as a custom resource from the CloudFormation stack to initialize the OpenSearch cluster with the embedding model.
+
+The document ingestion pipeline uses S3 event notifications to Simple Queue Service (SQS) to a Lambda function that handles documents being added to or removed from S3 by updating the OpenSearch indices based on S3 events.  The use of SQS limits the concurrency of the OpenSearch Lambda indexing function to no more than two instances, which minimizes the poential for exceeding the capacity of the OpenSearch cluster.  The diagram below illustrates the ingestion pipeline architecture.
+
+![image info](images/ingestion_detail_prod_like.png)
+
+The web front end runs in a container on ECS Fargate behind an Application Load Balancer (ALB).
 
 To deploy production-like, the following steps are required:
 1.	Build the required container images into Elastic Container Registry (ECR):
