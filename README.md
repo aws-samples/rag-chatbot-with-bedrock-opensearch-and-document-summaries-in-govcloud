@@ -47,7 +47,7 @@ This chatbot uses the semantic search capability of Amazon OpenSearch to find re
 
 ## Document summary Retrieval Augmented Generation (RAG) technique
 
-The search component includes a document summary feature as an advanced Retrieval Augmented Generation (RAG) technique.  This can improve the relevance of answers by comparing the question posed by the user to summaries of the documents in the document base, and ranking the results of full-text search from those documents with relevant summaries higher.  This approach can help reduce occurrences of search results from mentions in less relevant or authoritative documents.  The feature can be enabled or disabled by setting the parameter use_summary in the file /common/opensearch_retrieve_helper.py.  More details are in the Tunable parameters section below.  The diagram below illustrates how the document summary process can improve search results.
+The search component includes a document summary feature as an advanced Retrieval Augmented Generation (RAG) technique.  This can improve the relevance of answers by comparing the question posed by the user to summaries of the documents in the document base, and ranking the results of full-text search from those documents with relevant summaries higher.  This approach can help reduce occurrences of search results from mentions in less relevant or authoritative documents.  The feature can be enabled or disabled by setting the parameter use_summary in the file /containers/streamlit/opensearch_retrieve_helper.py.  More details are in the Tunable parameters section below.  The diagram below illustrates how the document summary process can improve search results.
 
 ![image info](images/summary_rag_approach_overview.png)
 
@@ -80,11 +80,11 @@ The web front end runs in a container on ECS Fargate behind an Application Load 
 To deploy production-like, the following steps are required:
 1.	Build the required container images into Elastic Container Registry (ECR):
 
-    a. The Streamlit user interface container is based on files in the code repository folders /containers/streamlit and /common
+    a. The Streamlit user interface container is based on files in the code repository folder /containers/streamlit
 
-    b. The Lambda function container for OpenSearch setup is based on files in the code repository folders /containers/lambda_setup_opensearch and /common
+    b. The Lambda function container for OpenSearch setup is based on files in the code repository folder /containers/lambda_setup_opensearch
 
-    c. The  Lambda function container for OpenSearch indexing is based on files in the code repository folders /containers/lambda_index and /common
+    c. The  Lambda function container for OpenSearch indexing is based on files in the code repository folder /containers/lambda_index
 
 2.	Create the CloudFormation stack located in the /cloudformation folder in the code repository.
 
@@ -104,7 +104,7 @@ To deploy production-like, the following steps are required:
 
 ## Development and testing deployment overview
 
-The development and testing deployment provides the ability to see the code running in a SageMaker Studio environment to understand how it works, try modifications and see the results in real time.  After confirming the changes work as expected, files in the /common folder of the code repository can be updated for building container images in the production-like deployment outlined in the section above.
+The development and testing deployment provides the ability to see the code running in a SageMaker Studio environment to understand how it works, try modifications and see the results in real time.  After confirming the changes work as expected, files in the /containers folder of the code repository can be updated for building container images in the production-like deployment outlined in the section above.
 
 Note that if the CreateLambda parameter is set to Yes as described in the Production-like deployment, the deployed Lambda functions will take precedence over the SageMaker Studio notebooks that set up the OpenSearch model and manage the indexing of documents.  These notebooks should not be run if the Lambda functions have been deployed, otherwise conflicts from duplicate processing will occur.
 
@@ -123,17 +123,17 @@ To deploy for development and testing, the following steps are required:
 
 3.	Create a user in the SageMaker domain – After the SageMaker domain is created, use the console to create a user in the domain and launch SageMaker Studio.
 
-4.	Copy the SageMaker files from the code repository to Studio – After Studio launches, copy the files from the /sagemaker_studio/notebooks and /common folders of the code repository into a folder in Studio.
+4.	Copy the SageMaker files from the code repository to Studio – After Studio launches, copy the files from the /sagemaker_studio/notebooks, sagemaker_studio/streamlit, and /containers/streamlit folders of the code repository into a single new folder in Studio.
 
 5.	Provide document base files – Drop sample document base files into the S3 bucket created by the stack.
 
 6.	Run notebooks in Studio – Run notebooks 20, 22, and 23 to follow the process of populating OpenSearch indices and performing semantic searches.  Select default environment settings when opening notebooks.
 
-7.	Ask questions in the user interface – To use the user interface within the Studio environment in single-user mode, run the scripts setup.sh and run.sh in the /sagemaker_studio/notebooks/streamlit folder of the code repository.  Click the link provided by the run.sh script to open a browser tab with the user interface and ask questions.
+7.	Ask questions in the user interface – To use the user interface within the Studio environment in single-user mode, run the scripts setup.sh and run.sh.  Click the link provided by the run.sh script to open a browser tab with the user interface and ask questions.
 
 ## Tunable parameters
 
-Within the code in the /common folder of the repository, several tunable parameters can be changed to best align with the use case and document base files.
+Within the code in the /containers folder of the repository, several tunable parameters can be changed to best align with the use case and document base files.
 
 chat.py
 
@@ -165,7 +165,7 @@ opensearch_retrieve_helper.py
 
 In a case where markdown formatted source documents in S3 are also the source for a web site accessible to users, the references provided by the Streamlit user interface can optionally be configured to be clickable links to the target web pages.  This can help provide a better user experience in this use case by enabling one-click access to references.
 
-To use this feature, set the parameters below in the file /common/opensearch_retrieve_helper.py
+To use this feature, set the parameters below in the file /containers/streamlit/opensearch_retrieve_helper.py
 
 - use_s3_key_to_weblink_conversion – Sets the feature on or off based on the Boolean value True or False.  When set to True, the feature is enabled.
 
