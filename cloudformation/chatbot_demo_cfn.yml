@@ -1,1 +1,1742 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
 
+AWSTemplateFormatVersion: '2010-09-09'
+Description: VPC with OpenSearchServiceDomain, endpoints and NAT Gateway
+Parameters:
+  VpcCidrBlock:
+    Description: CIDR block for the VPC
+    Type: String
+    Default: 172.10.0.0/16
+  PrivateSubnet1CidrBlock:
+    Description: CIDR block for Private Subnet
+    Type: String
+    Default: 172.10.1.0/24
+  PrivateSubnet1AZ:
+    Description: Availability Zone for Private Subnet 1
+    Type: String
+    Default: us-gov-west-1a
+  PrivateSubnet2CidrBlock:
+    Description: CIDR block for Private Subnet
+    Type: String
+    Default: 172.10.2.0/24
+  PrivateSubnet2AZ:
+    Description: Availability Zone for Private Subnet 1
+    Type: String
+    Default: us-gov-west-1b
+  PublicSubnet1CidrBlock:
+    Description: CIDR block for Public Subnet
+    Type: String
+    Default: 172.10.3.0/24
+  PublicSubnet1AZ:
+    Description: Availability Zone for Public Subnet
+    Type: String
+    Default: us-gov-west-1a
+  PublicSubnet2CidrBlock:
+    Description: CIDR block for Public Subnet
+    Type: String
+    Default: 172.10.4.0/24
+  PublicSubnet2AZ:
+    Description: Availability Zone for Public Subnet
+    Type: String
+    Default: us-gov-west-1b
+  NameTag:
+    Description: The value of the Name tag for resources created in this stack
+    Type: String
+    Default: chatbot-demo
+  OpenSearchEngineVersion:
+    Description: User-defined OpenSearch version
+    Type: String
+    Default: OpenSearch_2.11
+  OpenSearchInstanceType:
+    Type: String
+    Default: m6g.large.search
+  LambdaIndexEcrRepositoryName:
+    Description: ECR repository name for the OpenSearch indexing function
+    Type: String
+    Default: chatbot_prod_lambda_index
+  LambdaOpenSearchSetupEcrRepositoryName:
+    Description: ECR repository name for the Lambda OpenSearch setup function
+    Type: String
+    Default: chatbot_prod_lambda_setup_opensearch
+  CreateLambda:
+    Description: Select yes/no to include Lambda functions in the stack
+    Type: String
+    Default: "no"
+    AllowedValues:
+      - "yes"
+      - "no"
+  StreamlitImageEcrRepositoryName:
+    Description: ECR repository name for the Streamlit user interface container
+    Type: String
+    Default: chatbot_prod_streamlit
+  StreamlitContainerUser:
+    Description: User name for the Streamlit user interface container
+    Type: String
+    Default: appuser
+  CreateStreamlitEcs:
+    Description: Select yes/no to include Streamlit ECS user interface in the stack
+    Type: String
+    Default: "no"
+    AllowedValues:
+      - "yes"
+      - "no"
+  SageMakerStudioSupport:
+    Description: Select yes/no to include resources to support SageMaker Studio in the stack
+    Type: String
+    Default: "yes"
+    AllowedValues:
+      - "yes"
+      - "no"
+
+Conditions:
+  IncludeLambda: !Equals [!Ref "CreateLambda", "yes"]
+  IncludeStreamlitEcs: !Equals [!Ref "CreateStreamlitEcs", "yes"]
+  IncludeSageMakerStudioSupport: !Equals [!Ref "SageMakerStudioSupport", "yes"]
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidrBlock
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      Tags:
+      - Key: Name
+        Value: !Sub 
+        - '${NameTag}-vpc'
+        - NameTag: !Ref NameTag
+
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnet1CidrBlock
+      AvailabilityZone: !Ref PrivateSubnet1AZ
+      Tags:
+      - Key: Name
+        Value: !Sub 
+        - '${NameTag}-private-subnet1'
+        - NameTag: !Ref NameTag
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnet2CidrBlock
+      AvailabilityZone: !Ref PrivateSubnet2AZ
+      Tags:
+      - Key: Name
+        Value: !Sub 
+        - '${NameTag}-private-subnet2'
+        - NameTag: !Ref NameTag
+
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnet1CidrBlock
+      AvailabilityZone: !Ref PublicSubnet1AZ
+      Tags:
+      - Key: Name
+        Value: !Sub 
+        - '${NameTag}-public-subnet1'
+        - NameTag: !Ref NameTag
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnet2CidrBlock
+      AvailabilityZone: !Ref PublicSubnet2AZ
+      Tags:
+      - Key: Name
+        Value: !Sub 
+        - '${NameTag}-public-subnet2'
+        - NameTag: !Ref NameTag
+
+  OpenSearchSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow query traffic to OpenSearch service
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: !Sub 
+        - '${NameTag}-opensearch-security-group'
+        - NameTag: !Ref NameTag
+
+  OpenSearchSecurityGroupSelfIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    DependsOn: OpenSearchSecurityGroup
+    Properties:
+      Description: allows self ingress traffic from OpenSearch security group
+      GroupId: !Ref OpenSearchSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !Ref OpenSearchSecurityGroup
+
+  OpenSearchSecurityGroupSageMakerIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: IncludeSageMakerStudioSupport
+    DependsOn: OpenSearchSecurityGroup
+    Properties:
+      Description: allows query traffic from SageMaker Studio
+      GroupId: !Ref OpenSearchSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !Ref SageMakerSecurityGroup
+
+  OpenSearchSecurityGroupStreamlitEcsIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: IncludeStreamlitEcs
+    DependsOn: OpenSearchSecurityGroup
+    Properties:
+      Description: allows query traffic from ECS Streamlit
+      GroupId: !Ref OpenSearchSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !Ref StreamlitEcsSecurityGroup
+
+  OpenSearchSecurityGroupLambdaIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: IncludeLambda
+    DependsOn: OpenSearchSecurityGroup
+    Properties:
+      Description: allows query traffic from Lambda functions
+      GroupId: !Ref OpenSearchSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !Ref LambdaSecurityGroup
+
+  OpenSearchSecurityGroupEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      Description: allow all outbound traffic on 443
+      GroupId: !Ref OpenSearchSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      CidrIp: 0.0.0.0/0
+
+  OpenSearchKmsKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: !Sub '${NameTag}-opensearch-kms-key'
+      Enabled: true
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: '2012-10-17'
+        Id: !Sub '${NameTag}-opensearch-kms-key-policy'
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
+      Tags:
+        - Key: Name
+          Value: !Sub ${NameTag}-opensearch-kms-key
+
+  SageMakerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: IncludeSageMakerStudioSupport
+    Properties:
+      GroupDescription: security group for SageMaker notebook instance, training jobs and hosting endpoint
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${NameTag}-sagemaker-security-group
+
+  SageMakerSecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: IncludeSageMakerStudioSupport
+    Properties:
+      Description: allow all traffic from resources in the same SageMaker security group
+      IpProtocol: '-1'
+      GroupId: !Ref SageMakerSecurityGroup
+      SourceSecurityGroupId: !Ref SageMakerSecurityGroup
+
+  SageMakerSecurityGroupEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Condition: IncludeSageMakerStudioSupport
+    Properties:
+      Description: allow all outbound traffic
+      GroupId: !Ref SageMakerSecurityGroup
+      IpProtocol: -1
+      CidrIp: 0.0.0.0/0
+
+  StreamlitEcsSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: IncludeStreamlitEcs
+    Properties:
+      GroupDescription: Allow traffic to StreamlitEcs
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: !Sub 
+        - '${NameTag}-streamlitecs-security-group'
+        - NameTag: !Ref NameTag
+
+  StreamlitEcsSelfIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: IncludeStreamlitEcs
+    DependsOn: StreamlitEcsSecurityGroup
+    Properties:
+      Description: allow all traffic from resources in the same Streamlit ECS security group
+      GroupId: !Ref StreamlitEcsSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !Ref StreamlitEcsSecurityGroup
+
+  StreamlitEcsSecurityGroupLoadBalancerIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: IncludeStreamlitEcs
+    DependsOn: StreamlitEcsSecurityGroup
+    Properties:
+      Description: allow web traffic from the load balancer security group
+      GroupId: !Ref StreamlitEcsSecurityGroup
+      IpProtocol: tcp
+      FromPort: 8501
+      ToPort: 8501
+      SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+
+  StreamlitEcsEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Condition: IncludeStreamlitEcs
+    Properties:
+      Description: allow all outbound traffic on 443
+      GroupId: !Ref StreamlitEcsSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      CidrIp: 0.0.0.0/0
+
+  StreamlitEcsLoadBalancerEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Condition: IncludeStreamlitEcs
+    Properties:
+      Description: allow web traffic to the load balancer security group
+      GroupId: !Ref StreamlitEcsSecurityGroup
+      IpProtocol: tcp
+      FromPort: 8501
+      ToPort: 8501
+      DestinationSecurityGroupId: !Ref LoadBalancerSecurityGroup
+
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: IncludeLambda
+    Properties:
+      GroupDescription: Allow self ingress traffic to Lambda functions
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: !Sub 
+        - '${NameTag}-lambda-security-group'
+        - NameTag: !Ref NameTag
+
+  LambdaSelfIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: IncludeLambda
+    DependsOn: LambdaSecurityGroup
+    Properties:
+      Description: allow self ingress function to lambda functions
+      GroupId: !Ref LambdaSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !Ref LambdaSecurityGroup
+
+  LambdaEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Condition: IncludeLambda
+    Properties:
+      Description: allow all outbound traffic on 443
+      GroupId: !Ref LambdaSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      CidrIp: 0.0.0.0/0
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${NameTag}-internet-gateway
+
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+
+  NatGatewayEIP:
+    Type: AWS::EC2::EIP 
+    Condition: IncludeSageMakerStudioSupport
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      Domain: VPC
+
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Condition: IncludeSageMakerStudioSupport
+    Properties:
+      AllocationId: !GetAtt NatGatewayEIP.AllocationId
+      SubnetId: !Ref PublicSubnet1
+      Tags:
+        - Key: Name
+          Value: !Ref NameTag
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${NameTag}-public-routes
+
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet1
+
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet2
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${NameTag}-private-routes-az1
+
+  DefaultPrivateRoute1:
+    Type: AWS::EC2::Route
+    Condition: IncludeSageMakerStudioSupport
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+
+  PrivateSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnet1
+
+  PrivateSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnet2
+
+  VPCEndpointSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow TLS for VPC Endpoint
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${NameTag}-endpoint-security-group
+
+  EndpointSecurityGroupSageMakerIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: IncludeSageMakerStudioSupport
+    Properties:
+      Description: allow traffic to VPC endpoints from SageMaker security group
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      GroupId: !Ref VPCEndpointSecurityGroup
+      SourceSecurityGroupId: !Ref SageMakerSecurityGroup
+
+  EndpointSecurityGroupLambdaIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: IncludeLambda
+    Properties:
+      Description: allow traffic to VPC endpoints from Lambda security group
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      GroupId: !Ref VPCEndpointSecurityGroup
+      SourceSecurityGroupId: !Ref LambdaSecurityGroup
+
+  EndpointSecurityGroupStreamlitEcsIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: IncludeStreamlitEcs
+    Properties:
+      Description: allow traffic to VPC endpoints from Streamlit ECS security group
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      GroupId: !Ref VPCEndpointSecurityGroup
+      SourceSecurityGroupId: !Ref StreamlitEcsSecurityGroup
+
+  EndpointSecurityGroupEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      Description: allow all outbound traffic on 443
+      GroupId: !Ref VPCEndpointSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      CidrIp: 0.0.0.0/0
+
+  VPCEndpointS3:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+      VpcEndpointType: Gateway
+      VpcId: !Ref VPC
+      PolicyDocument:
+        !Sub |
+        {
+          "Version":"2012-10-17",
+          "Statement":[{
+            "Effect":"Allow",
+            "Principal": "*",
+            "Action":[
+              "s3:GetObject",
+              "s3:PutObject",
+              "s3:ListBucket"
+            ],
+            "Resource": "arn:${AWS::Partition}:s3:::*"
+          }]
+        }
+      RouteTableIds:
+        - !Ref PrivateRouteTable
+
+  VPCEndpointS3Id:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Name: !Sub "ds-s3-endpoint-${NameTag}-id"
+      Type: String
+      Value: !Ref VPCEndpointS3
+      Description: S3 VPC Endpoint ID
+
+  VPCEndpointSagemakerAPI:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: IncludeSageMakerStudioSupport
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.sagemaker.api'
+      VpcId: !Ref VPC
+
+  VPCEndpointSageMakerRuntime:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: IncludeSageMakerStudioSupport
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.sagemaker.runtime'
+      VpcId: !Ref VPC
+
+  VPCEndpointSageMakerNotebook:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: IncludeSageMakerStudioSupport
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      ServiceName: !Sub 'aws.sagemaker.${AWS::Region}.notebook'
+      VpcId: !Ref VPC
+
+  VPCEndpointSTS:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.sts'
+      VpcId: !Ref VPC
+
+  VPCEndpointSSM:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ssm'
+      VpcId: !Ref VPC
+
+  VPCEndpointCW:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.monitoring'
+      VpcId: !Ref VPC
+
+  VPCEndpointCWL:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.logs'
+      VpcId: !Ref VPC
+
+  VPCEndpointECR:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ecr.dkr'
+      VpcId: !Ref VPC
+
+  VPCEndpointECRAPI:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ecr.api'
+      VpcId: !Ref VPC
+
+  VPCEndpointCloudFormation:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.cloudformation'
+      VpcId: !Ref VPC
+
+  VPCEndpointBedrockRuntime:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.bedrock-runtime'
+      VpcId: !Ref VPC
+
+  VPCEndpointEcsAgent:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Condition: IncludeStreamlitEcs
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ecs-agent'
+      VpcId: !Ref VPC
+
+  VPCEndpointEcsTelemetry:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Condition: IncludeStreamlitEcs
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ecs-telemetry'
+      VpcId: !Ref VPC
+
+  VPCEndpointEcs:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Condition: IncludeStreamlitEcs
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ecs'
+      VpcId: !Ref VPC
+
+  S3KmsKey:
+    Type: 'AWS::KMS::Key'
+    Properties:
+      Description: KMS key for S3 buckets
+      EnableKeyRotation: true
+      KeyPolicy:
+        Id: key-policy-1
+        Version: 2012-10-17
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
+            Action: 'kms:*'
+            Resource: '*'
+          - Sid: Allow access for Key Users
+            Effect: Allow
+            Principal:
+              AWS: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
+            Action:
+              - 'kms:Encrypt'
+              - 'kms:Decrypt'
+              - 'kms:ReEncrypt'
+              - 'kms:GenerateDataKey'
+              - 'kms:DescribeKey'
+            Resource: '*'
+            Condition:
+              StringNotEquals:
+                'aws:sourceVpce': !Sub "ds-s3-endpoint-${NameTag}-id"
+      Tags:
+        - Key: Name
+          Value: !Ref NameTag
+
+  S3KmsKeyAlias:
+    Type: 'AWS::KMS::Alias'
+    Properties:
+      AliasName: !Sub "alias/ds-kms-cmk-${NameTag}"
+      TargetKeyId: !Ref S3KmsKey
+
+  S3KmsKeyArn:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Name: !Sub "ds-kms-cmk-${NameTag}-arn"
+      Type: String
+      Value: !GetAtt 
+        - S3KmsKey
+        - Arn
+      Description: SageMakerExecRole ARN
+
+  DataBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${NameTag}-data-${AWS::AccountId}
+      VersioningConfiguration:
+        Status: Suspended
+      AccessControl: Private
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: TRUE
+        BlockPublicPolicy: TRUE
+        IgnorePublicAcls: TRUE
+        RestrictPublicBuckets: TRUE
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'aws:kms'
+              KMSMasterKeyID: !Ref S3KmsKey
+      NotificationConfiguration:
+        !If
+          - IncludeLambda
+          -
+            QueueConfigurations:
+            - Event: s3:ObjectCreated:*
+              Queue: !GetAtt S3EventQueue.Arn
+              Filter:
+                S3Key:
+                  Rules:
+                  - Name: suffix
+                    Value: .pdf
+            - Event: s3:ObjectRemoved:*
+              Queue: !GetAtt S3EventQueue.Arn
+              Filter:
+                S3Key:
+                  Rules:
+                  - Name: suffix
+                    Value: .pdf
+            - Event: s3:ObjectCreated:*
+              Queue: !GetAtt S3EventQueue.Arn
+              Filter:
+                S3Key:
+                  Rules:
+                  - Name: suffix
+                    Value: .docx
+            - Event: s3:ObjectRemoved:*
+              Queue: !GetAtt S3EventQueue.Arn
+              Filter:
+                S3Key:
+                  Rules:
+                  - Name: suffix
+                    Value: .docx
+            - Event: s3:ObjectCreated:*
+              Queue: !GetAtt S3EventQueue.Arn
+              Filter:
+                S3Key:
+                  Rules:
+                  - Name: suffix
+                    Value: .md
+            - Event: s3:ObjectRemoved:*
+              Queue: !GetAtt S3EventQueue.Arn
+              Filter:
+                S3Key:
+                  Rules:
+                  - Name: suffix
+                    Value: .md
+          - !Ref "AWS::NoValue"
+
+  S3EventQueue:
+    Type: "AWS::SQS::Queue"
+    Condition: IncludeLambda
+    Properties:
+      QueueName: !Sub ${NameTag}-s3-event-queue
+      VisibilityTimeout: 5400
+      RedrivePolicy: 
+        deadLetterTargetArn: !GetAtt S3EventDLQ.Arn
+        maxReceiveCount: 5
+
+  SQSQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Condition: IncludeLambda
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: "*"
+            Action: SQS:SendMessage
+            Resource: !GetAtt S3EventQueue.Arn
+            Condition:
+              ArnLike:
+                aws:SourceArn: !Sub 'arn:${AWS::Partition}:s3:::${NameTag}-data-${AWS::AccountId}'
+      Queues:
+        - Ref: S3EventQueue
+
+  S3EventDLQ:
+    Type: "AWS::SQS::Queue"
+    Condition: IncludeLambda
+    Properties:
+      QueueName: !Sub ${NameTag}-s3-event-dlq
+
+  LambdaIndexRole:
+    Type: AWS::IAM::Role
+    Condition: IncludeLambda
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      RoleName: !Sub ${NameTag}-lambda-index-role
+      ManagedPolicyArns:
+        - !Ref LambdaIndexPolicy
+
+  LambdaIndexPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Condition: IncludeLambda
+    Properties:
+      Description: Permissions used by Lambda Indexing function
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: CloudWatchLogsAccess
+            Effect: Allow
+            Action:
+              - 'logs:CreateLogGroup'
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Resource: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${NameTag}-lambda-index:*
+          - Sid: KMSAccess
+            Effect: Allow
+            Action:
+              - 'kms:CreateGrant'
+              - 'kms:Decrypt'
+              - 'kms:DescribeKey'
+              - 'kms:Encrypt'
+              - 'kms:GenerateDataKey'
+              - 'kms:ListAliases'
+            Resource:
+              - !GetAtt S3KmsKey.Arn
+              - !GetAtt OpenSearchKmsKey.Arn
+          - Sid: S3Access
+            Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:PutObject
+              - s3:DeleteObject
+              - s3:ListBucket
+            Resource: !Sub arn:${AWS::Partition}:s3:::*
+          - Sid: EC2Access
+            Effect: Allow
+            Action:
+              - ec2:CreateNetworkInterface
+              - ec2:CreateNetworkInterfacePermission
+              - ec2:DeleteNetworkInterface
+              - ec2:DeleteNetworkInterfacePermission
+              - ec2:DescribeNetworkInterfaces
+              - ec2:DescribeVpcs
+              - ec2:DescribeDhcpOptions
+              - ec2:DescribeSubnets
+              - ec2:DescribeSecurityGroups
+              - ec2:DescribeVpcEndpoints
+            Resource: "*"
+          - Sid: OpenSearchAccess
+            Effect: Allow
+            Action:
+              - es:*
+            Resource: !Join
+              - ""
+              - - !GetAtt OpenSearchServiceDomain.Arn
+                - "/*"
+          - Sid: CloudFormationAccess
+            Effect: Allow
+            Action:
+              - cloudformation:DescribeStacks
+              - cloudformation:ListStacks
+            Resource: "*"
+          - Sid: BedrockAccess
+            Effect: Allow
+            Action:
+              - bedrock:InvokeModel
+            Resource: !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/*
+          - Sid: SqsAccess
+            Effect: Allow
+            Action:
+              - sqs:ReceiveMessage
+              - sqs:DeleteMessage
+              - sqs:GetQueueAttributes
+              - sqs:ChangeMessageVisibility
+            Resource: !GetAtt S3EventQueue.Arn
+
+  LambdaIndexEventSource:
+    Type: "AWS::Lambda::EventSourceMapping"
+    Condition: IncludeLambda
+    Properties:
+      FunctionName: !GetAtt LambdaIndex.Arn
+      BatchSize: 1
+      EventSourceArn: !GetAtt S3EventQueue.Arn
+      ScalingConfig:
+        MaximumConcurrency: 2
+    DependsOn:
+      - LambdaIndex
+      - S3EventQueue
+
+  LambdaIndex:
+    Type: AWS::Lambda::Function
+    Condition: IncludeLambda
+    Properties:
+      FunctionName: !Sub '${NameTag}-lambda-index'
+      PackageType: Image
+      Role: !GetAtt LambdaIndexRole.Arn
+      Code:
+        ImageUri: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${LambdaIndexEcrRepositoryName}:latest
+      Architectures:
+        - x86_64
+      MemorySize: 2048
+      Timeout: 900
+      VpcConfig:
+        SecurityGroupIds:
+          - Ref: LambdaSecurityGroup
+        SubnetIds:
+          - Ref: PrivateSubnet1
+          - Ref: PrivateSubnet2
+      ReservedConcurrentExecutions: 2
+      Tags:
+        - Key: Name
+          Value: !Ref NameTag
+
+  LambdaOpenSearchSetupPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Condition: IncludeLambda
+    Properties:
+      Description: Permissions used by Lambda OpenSearch Setup function
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: CloudWatchLogsAccess
+            Effect: Allow
+            Action:
+              - 'logs:CreateLogGroup'
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Resource: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${NameTag}-lambda-opensearch-setup:*
+          - Sid: EC2Access
+            Effect: Allow
+            Action:
+              - ec2:CreateNetworkInterface
+              - ec2:CreateNetworkInterfacePermission
+              - ec2:DeleteNetworkInterface
+              - ec2:DeleteNetworkInterfacePermission
+              - ec2:DescribeNetworkInterfaces
+              - ec2:DescribeVpcs
+              - ec2:DescribeDhcpOptions
+              - ec2:DescribeSubnets
+              - ec2:DescribeSecurityGroups
+              - ec2:DescribeVpcEndpoints
+            Resource: "*"
+          - Sid: OpenSearchAccess
+            Effect: Allow
+            Action:
+              - es:*
+            Resource: !Join
+              - ""
+              - - !GetAtt OpenSearchServiceDomain.Arn
+                - "/*"
+          - Sid: CloudFormationAccess
+            Effect: Allow
+            Action:
+              - cloudformation:DescribeStacks
+              - cloudformation:ListStacks
+            Resource: "*"
+
+  SageMakerNotebookInstancePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Condition: IncludeSageMakerStudioSupport
+    Properties:
+      Description: SageMaker Notebook restricted access
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: CloudWatchLogsAccess
+            Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:DescribeLogStreams
+              - logs:PutLogEvents
+              - logs:GetLogEvents
+            Resource:
+              - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/sagemaker/*
+              - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-stream:*
+          - Sid: CloudWatchMetricsAccess
+            Effect: Allow
+            Action:
+              - cloudwatch:GetMetricStatistics
+              - cloudwatch:ListMetrics
+              - cloudwatch:PutMetricData
+              - cloudwatch:GetMetricData
+              - cloudwatch:PutMetricAlarm
+              - cloudwatch:DescribeAlarms
+            Resource: '*'
+          - Sid: KMSAccess
+            Effect: Allow
+            Action:
+              - 'kms:CreateGrant'
+              - 'kms:Decrypt'
+              - 'kms:DescribeKey'
+              - 'kms:Encrypt'
+              - 'kms:GenerateDataKey'
+              - 'kms:ListAliases'
+            Resource:
+              - !GetAtt S3KmsKey.Arn
+              - !GetAtt SageMakerNotebookEbsKmsKey.Arn
+              - !GetAtt OpenSearchKmsKey.Arn
+          - Sid: S3Access
+            Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:PutObject
+              - s3:DeleteObject
+              - s3:ListBucket
+            Resource: !Sub arn:${AWS::Partition}:s3:::*
+          - Sid: ECRAccess
+            Effect: Allow
+            Action:
+              - ecr:GetAuthorizationToken
+              - ecr:GetDownloadUrlForLayer
+              - ecr:BatchGetImage
+              - ecr:BatchCheckLayerAvailability
+              - ecr:SetRepositoryPolicy
+              - ecr:CompleteLayerUpload
+              - ecr:BatchDeleteImage
+              - ecr:UploadLayerPart
+              - ecr:InitiateLayerUpload
+              - ecr:PutImage
+            Resource: !Sub arn:${AWS::Partition}:ecr:*:*:repository/*sagemaker*
+          - Sid: PassRole
+            Effect: Allow
+            Action:
+              - iam:PassRole
+            Resource: '*'
+            Condition:
+              StringEquals:
+                iam:PassedToService: sagemaker.amazonaws.com
+          - Sid: SageMakerAccess
+            Action:
+              - sagemaker:Describe*
+              - sagemaker:List*
+              - sagemaker:CreateApp
+              - sagemaker:DeleteApp
+              - sagemaker:AddTags
+            Resource: !Sub arn:${AWS::Partition}:sagemaker:${AWS::Region}:${AWS::AccountId}:*
+            Effect: Allow
+          - Sid: EC2Access
+            Effect: Allow
+            Action:
+              - ec2:CreateNetworkInterface
+              - ec2:CreateNetworkInterfacePermission
+              - ec2:DeleteNetworkInterface
+              - ec2:DeleteNetworkInterfacePermission
+              - ec2:DescribeNetworkInterfaces
+              - ec2:DescribeVpcs
+              - ec2:DescribeDhcpOptions
+              - ec2:DescribeSubnets
+              - ec2:DescribeSecurityGroups
+              - ec2:DescribeVpcEndpoints
+            Resource: "*"
+            Condition:
+              StringEquals:
+                aws:SourceVpc: !Ref VPC 
+          - Sid: OpenSearchAccess
+            Effect: Allow
+            Action:
+              - es:*
+            Resource: 
+              - !Join
+                - ""
+                - - !GetAtt OpenSearchServiceDomain.Arn
+                  - "/*"
+              - !GetAtt OpenSearchServiceDomain.Arn
+          - Sid: CodeCommitAccess
+            Effect: Allow
+            Action:
+              - codecommit:GitPull
+              - codecommit:GitPush
+            Resource: !Sub arn:${AWS::Partition}:codecommit:${AWS::Region}:${AWS::AccountId}:*
+          - Sid: CloudFormationAccess
+            Effect: Allow
+            Action:
+              - cloudformation:DescribeStacks
+              - cloudformation:ListStacks
+            Resource: "*"
+          - Sid: BedrockAccess
+            Effect: Allow
+            Action:
+              - bedrock:InvokeModel
+            Resource: !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/*
+
+  SageMakerNotebookInstanceRole:
+    Type: AWS::IAM::Role
+    Condition: IncludeSageMakerStudioSupport
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: sagemaker.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      RoleName: !Sub ${NameTag}-notebook-role
+      ManagedPolicyArns:
+        - !Ref SageMakerNotebookInstancePolicy
+
+  SageMakerNotebookEbsKmsKey:
+    Type: AWS::KMS::Key
+    Condition: IncludeSageMakerStudioSupport
+    Properties:
+      Description: "Generated KMS Key for SageMaker Notebook's EBS encryption"
+      EnableKeyRotation: true
+      Enabled: true
+      KeyPolicy:
+        Version: 2012-10-17
+        Id: allow-root-access-to-key
+        Statement:
+          - Sid: allow-root-to-delegate-actions
+            Effect: Allow
+            Principal:
+              AWS: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:root
+            Action:
+              - kms:DeleteAlias
+              - kms:DescribeKey
+              - kms:EnableKey
+              - kms:GetKeyPolicy
+              - kms:UpdateAlias
+              - kms:CreateAlias
+              - kms:GetKeyPolicy
+              - kms:CreateGrant
+              - kms:DisableKey
+              - kms:Revoke*
+              - kms:Disable*
+              - kms:CancelKeyDeletion
+              - kms:ScheduleKeyDeletion
+              - kms:PutKeyPolicy
+              - kms:RevokeGrant
+              - kms:TagResource
+              - kms:UnTagResource
+              - kms:EnableKeyRotation
+              - kms:ListResourceTags
+            Resource: '*'
+
+  KeyAlias:
+    Type: AWS::KMS::Alias
+    Condition: IncludeSageMakerStudioSupport
+    Properties:
+      AliasName: !Sub alias/${NameTag}-key
+      TargetKeyId: !Ref SageMakerNotebookEbsKmsKey  
+
+  OpenSearchServiceDomain:
+    Type: 'AWS::OpenSearchService::Domain'
+    Properties:
+      DomainName:
+        Ref: NameTag
+      EngineVersion:
+        Ref: OpenSearchEngineVersion
+      ClusterConfig:
+        InstanceCount: '1'
+        InstanceType:
+          Ref: OpenSearchInstanceType
+      EBSOptions:
+        EBSEnabled: true
+        Iops: '3000'
+        VolumeSize: '10'
+        VolumeType: 'gp3'
+      EncryptionAtRestOptions:
+        Enabled: true
+        KmsKeyId: !Ref OpenSearchKmsKey
+      NodeToNodeEncryptionOptions:
+        Enabled: true
+      AccessPolicies:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: "Allow"
+            Principal: 
+              AWS: !Ref "AWS::AccountId"
+            Action: 'es:*'
+            Resource: !Sub arn:${AWS::Partition}:es:${AWS::Region}:${AWS::AccountId}:*
+      Tags:
+        - Key: Name
+          Value: !Ref NameTag
+      VPCOptions:
+        SubnetIds:
+          - Ref: PrivateSubnet1
+        SecurityGroupIds:
+          - Ref: OpenSearchSecurityGroup
+
+  LambdaOpenSearchSetupRole:
+    Type: AWS::IAM::Role
+    Condition: IncludeLambda
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      RoleName: !Sub ${NameTag}-lambda-opensearch-setup-role
+      ManagedPolicyArns:
+        - !Ref LambdaOpenSearchSetupPolicy
+
+  LambdaOpenSearchSetup:
+    Type: AWS::Lambda::Function
+    Condition: IncludeLambda
+    Properties:
+      FunctionName: !Sub '${NameTag}-lambda-opensearch-setup'
+      PackageType: Image
+      Role: !GetAtt LambdaOpenSearchSetupRole.Arn
+      Code:
+        ImageUri: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${LambdaOpenSearchSetupEcrRepositoryName}:latest
+      Architectures:
+        - x86_64
+      MemorySize: 768
+      Timeout: 900
+      VpcConfig:
+        SecurityGroupIds:
+          - Ref: LambdaSecurityGroup
+        SubnetIds:
+          - Ref: PrivateSubnet1
+          - Ref: PrivateSubnet2
+      ReservedConcurrentExecutions: 1
+      Tags:
+        - Key: Name
+          Value: !Ref NameTag
+
+  TriggerLambdaCustomResource:
+    Type: Custom::TriggerLambda
+    Condition: IncludeLambda
+    Version: '1.0'
+    Properties:
+      ServiceToken: !GetAtt LambdaOpenSearchSetup.Arn
+      OpenSearchServiceDomainEndpoint: !GetAtt OpenSearchServiceDomain.DomainEndpoint
+    DependsOn: 
+      - OpenSearchServiceDomain
+      - VPCEndpointS3
+      - VPCEndpointS3Id
+      - VPCEndpointSecurityGroup
+      - PrivateRouteTable
+      - PrivateSubnet1RouteTableAssociation
+      - PrivateSubnet2RouteTableAssociation
+      - LambdaEgress
+
+  LoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: IncludeStreamlitEcs
+    Properties:
+      GroupDescription: Allow web traffic to Load Balancer
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: !Sub 
+        - '${NameTag}-alb-security-group'
+        - NameTag: !Ref NameTag
+
+  LoadBalancerSecurityGroupHttpIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: IncludeStreamlitEcs
+    DependsOn: LoadBalancerSecurityGroup
+    Properties:
+      Description: allow all inbound traffic on 8501
+      GroupId: !Ref LoadBalancerSecurityGroup
+      IpProtocol: tcp
+      FromPort: 8501
+      ToPort: 8501
+      CidrIp: "0.0.0.0/0"
+
+  LoadBalancerSecurityGroupHttpEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Condition: IncludeStreamlitEcs
+    Properties:
+      Description: allow all outbound traffic on 8501
+      GroupId: !Ref LoadBalancerSecurityGroup
+      IpProtocol: tcp
+      FromPort: 8501
+      ToPort: 8501
+      CidrIp: 0.0.0.0/0
+
+  ECSCluster:
+    Type: 'AWS::ECS::Cluster'
+    Condition: IncludeStreamlitEcs
+    DependsOn: OpenSearchServiceDomain
+    Properties:
+      ClusterName: !Sub '${NameTag}-cluster'
+      CapacityProviders:
+        - FARGATE
+        - FARGATE_SPOT
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enabled
+      Configuration:
+        ExecuteCommandConfiguration:
+          Logging: DEFAULT
+      Tags: []
+
+  ECSService:
+    Type: 'AWS::ECS::Service'
+    Condition: IncludeStreamlitEcs
+    Properties:
+      Cluster: !Sub '${NameTag}-cluster'
+      CapacityProviderStrategy:
+        - CapacityProvider: FARGATE
+          Base: 1
+          Weight: 1
+      TaskDefinition: !Ref TaskDefinition
+      ServiceName: !Sub '${NameTag}-service'
+      SchedulingStrategy: REPLICA
+      DesiredCount: 1
+      LoadBalancers:
+        - ContainerName: !Sub '${NameTag}-container'
+          ContainerPort: 8501
+          LoadBalancerName: !Ref 'AWS::NoValue'
+          TargetGroupArn: !Ref TargetGroup
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+            - !Ref StreamlitEcsSecurityGroup
+          Subnets:
+            - !Ref PrivateSubnet1
+            - !Ref PrivateSubnet2
+      PlatformVersion: LATEST
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+        DeploymentCircuitBreaker:
+          Enable: true
+          Rollback: true
+      DeploymentController:
+        Type: ECS
+      Tags: []
+      EnableECSManagedTags: true
+    DependsOn:
+      - Listener
+      - ECSCluster
+
+  LoadBalancer:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    Condition: IncludeStreamlitEcs
+    Properties:
+      Type: application
+      Name: !Sub '${NameTag}-alb'
+      SecurityGroups:
+        - !Ref LoadBalancerSecurityGroup
+      Subnets:
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
+      LoadBalancerAttributes:
+        - Key: routing.http.drop_invalid_header_fields.enabled
+          Value: true
+
+  TargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Condition: IncludeStreamlitEcs
+    Properties:
+      Name: !Sub '${NameTag}-tg'
+      Port: 8501
+      Protocol: HTTP
+      TargetType: ip
+      HealthCheckProtocol: HTTP
+      VpcId: !Ref VPC
+
+  Listener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Condition: IncludeStreamlitEcs
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 8501
+      Protocol: HTTP
+
+  AutoScalingTarget:
+    Type: 'AWS::ApplicationAutoScaling::ScalableTarget'
+    Condition: IncludeStreamlitEcs
+    Properties:
+      MaxCapacity: '1'
+      MinCapacity: '1'
+      ResourceId: !Sub 'service/${NameTag}-cluster/${NameTag}-service'
+      RoleARN: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService
+      ScalableDimension: 'ecs:service:DesiredCount'
+      ServiceNamespace: ecs
+    DependsOn:
+      - ECSService
+
+  AutoScalingPolicy:
+    Type: 'AWS::ApplicationAutoScaling::ScalingPolicy'
+    Condition: IncludeStreamlitEcs
+    Properties:
+      PolicyName: !Sub '${NameTag}-policy'
+      PolicyType: TargetTrackingScaling
+      ResourceId: !Sub 'service/${NameTag}-cluster/${NameTag}-service'
+      ScalingTargetId: !Ref AutoScalingTarget
+      TargetTrackingScalingPolicyConfiguration:
+        ScaleInCooldown: '300'
+        ScaleOutCooldown: '300'
+        TargetValue: '70'
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Condition: IncludeStreamlitEcs
+    Properties:
+      Family: !Sub '${NameTag}-container'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      RuntimePlatform:
+        CpuArchitecture: X86_64
+        OperatingSystemFamily: LINUX
+      Cpu: "1024"
+      Memory: "4GB"
+      TaskRoleArn: !GetAtt EcsTaskRole.Arn
+      ExecutionRoleArn: !GetAtt EcsTaskRole.Arn
+      ContainerDefinitions:
+        - Essential: true
+          Name: !Sub '${NameTag}-container'
+          Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${StreamlitImageEcrRepositoryName}:latest
+          User: !Ref StreamlitContainerUser
+          Privileged: !Ref "AWS::NoValue"
+          PortMappings:
+            - ContainerPort: 8501
+              HostPort: 8501
+              Protocol: tcp
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-create-group: true
+              awslogs-group: !Sub '/ecs/${NameTag}-container'
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: ecs
+          Cpu: 1024
+          Memory: 3072
+          MemoryReservation: 2048
+          Environment:
+            - Name: OPENSEARCH_SERVICE_ENDPOINT
+              Value: !GetAtt OpenSearchServiceDomain.DomainEndpoint
+            - Name: OPENSEARCH_FULL_TEXT_INDEX
+              Value: chatbot-full_text
+            - Name: OPENSEARCH_SUMMARY_INDEX
+              Value: chatbot-summary
+
+  EcsTaskPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Condition: IncludeStreamlitEcs
+    Properties:
+      Description: Policy for chatbot demo ECS task
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: CloudWatchLogsAccess
+            Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:DescribeLogStreams
+              - logs:PutLogEvents
+            Resource: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/ecs/${NameTag}-container:*
+          - Sid: KMSAccess
+            Effect: Allow
+            Action:
+              - kms:CreateGrant
+              - kms:Decrypt
+              - kms:DescribeKey
+              - kms:Encrypt
+              - kms:GenerateDataKey
+              - kms:ListAliases
+            Resource:
+              - !GetAtt OpenSearchKmsKey.Arn
+          - Sid: ECRGetAuthorizationToken
+            Effect: Allow
+            Action:
+              - ecr:GetAuthorizationToken
+            Resource: "*"
+          - Sid: ECRGetImage
+            Effect: Allow
+            Action:
+              - ecr:GetDownloadUrlForLayer
+              - ecr:BatchGetImage
+              - ecr:BatchCheckLayerAvailability
+            Resource: !Sub arn:${AWS::Partition}:ecr:${AWS::Region}:${AWS::AccountId}:repository/${StreamlitImageEcrRepositoryName}
+          - Sid: OpenSearchAccess
+            Effect: Allow
+            Action:
+              - es:*
+            Resource: !Join
+              - ""
+              - - !GetAtt OpenSearchServiceDomain.Arn
+                - "/*"
+          - Sid: BedrockAccess
+            Effect: Allow
+            Action:
+              - bedrock:InvokeModel
+            Resource: !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/*
+
+  EcsTaskRole:
+    Type: AWS::IAM::Role
+    Condition: IncludeStreamlitEcs
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      RoleName: !Sub ${NameTag}-ecs-task-definition-role
+      ManagedPolicyArns:
+        - !Ref EcsTaskPolicy
+
+Outputs:
+  Region:
+    Description: Region
+    Value: !Ref AWS::Region
+    Export:
+      Name: !Sub ${AWS::StackName}-Region
+  AccountId:
+    Description: Account ID
+    Value: !Ref AWS::AccountId
+    Export:
+      Name: !Sub ${AWS::StackName}-AccountId
+  VPC:
+    Description: VPC ID
+    Value: !Ref VPC
+    Export:
+      Name: !Sub ${AWS::StackName}-VPC
+  PrivateSubnet1:
+    Description: Private Subnet 1
+    Value: !Ref PrivateSubnet1
+    Export:
+      Name: !Sub ${AWS::StackName}-PrivateSubnet1
+  PrivateSubnet2:
+    Description: Private Subnet 2
+    Value: !Ref PrivateSubnet2
+    Export:
+      Name: !Sub ${AWS::StackName}-PrivateSubnet2
+  SageMakerSecurityGroup:
+    Condition: IncludeSageMakerStudioSupport
+    Description: SageMaker Security Group
+    Value: !Ref SageMakerSecurityGroup
+    Export:
+      Name: !Sub ${AWS::StackName}-SageMakerSecurityGroup
+  SageMakerExecutionRoleArn:
+    Condition: IncludeSageMakerStudioSupport
+    Description: SageMaker Execution Role ARN
+    Value: !GetAtt SageMakerNotebookInstanceRole.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-SageMakerExecutionRoleArn
+  DataBucket:
+    Description: Data Bucket
+    Value: !Ref DataBucket
+    Export:
+      Name: !Sub ${AWS::StackName}-DataBucket
+  OpenSearchServiceDomain:
+    Description: OpenSearch Service Domain
+    Value: !Ref OpenSearchServiceDomain
+    Export:
+      Name: !Sub ${AWS::StackName}-OpenSearchServiceDomain
+  OpenSearchServiceDomainEndpoint:
+    Description: Endpoint address of the OpenSearch Service Domain
+    Value: !GetAtt OpenSearchServiceDomain.DomainEndpoint
+    Export:
+      Name: !Sub OpenSearchServiceDomainEndpoint
