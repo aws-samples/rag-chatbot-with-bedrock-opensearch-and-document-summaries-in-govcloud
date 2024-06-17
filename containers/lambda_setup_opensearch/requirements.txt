@@ -1,0 +1,9 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+
+opensearch-py-ml
+sentence-transformers
+pandas==2.0.3
+accelerate
+deprecated
+cfnresponse
