@@ -27,7 +27,7 @@ The architecture makes use of the following major components in AWS GovCloud:
 - Amazon OpenSearch domain to host a searchable index of the document repository with semantic search capability
 - Amazon Titan Text Express Foundation Model on Amazon Bedrock to serve requests to answer user questions based on OpenSearch content matches
 - Amazon SageMaker Studio to host demonstration notebooks and web user interface in development and test deployment
-- Elastic Container Service (ECS) to host the Streamlit web user interface in production-like deployment
+- Elastic Container Service (ECS) to host the web user interface in production-like deployment
 - A Virtual Private Cloud (VPC) to support the OpenSearch, SageMaker Studio and ECS components
 - AWS CloudFormation to build the cloud infrastructure used by the demonstration
 
