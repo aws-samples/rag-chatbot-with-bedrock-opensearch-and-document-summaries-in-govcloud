@@ -66,7 +66,7 @@ Both deployment options use a common CloudFormation script that creates the foll
 - S3 bucket to contain the files in the document base
 - IAM roles and permissions needed to perform the demonstration
 
-## Production-like deployment Overview
+## Production-like deployment
 
 The production-like deployment demonstrates using containers in Elastic Container Service (ECS) and Lambda to support many users and an evolving document base.
 
@@ -103,7 +103,7 @@ To deploy production-like, the following steps are required:
 
 4.	Locate the URL of the ALB for the ECS service in the ECS console.  Open the URL in a browser on port 8501 to open the web user interface and ask questions.
 
-## Development and testing deployment overview
+## Development and testing deployment
 
 The development and testing deployment provides the ability to see the code running in a SageMaker Studio environment to understand how it works, try modifications and see the results in real time.  After confirming the changes work as expected, files in the /containers folder of the code repository can be updated for building container images in the production-like deployment outlined in the section above.
 
