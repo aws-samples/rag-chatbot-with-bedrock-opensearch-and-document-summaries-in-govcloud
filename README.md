@@ -79,7 +79,7 @@ The document ingestion pipeline uses S3 event notifications to Simple Queue Serv
 The web front end runs in a container on ECS Fargate behind an Application Load Balancer (ALB).
 
 To deploy production-like, the following steps are required:
-1.	Build the required container images into Elastic Container Registry (ECR):
+1.	Build the required container images into Elastic Container Registry (ECR).  AWS CodeBuild may be used for the container build, and buildspec files are provided in the repository.
 
     a. The Streamlit user interface container is based on files in the code repository folder /containers/streamlit
 
