@@ -14,10 +14,9 @@ Completing this demonstration from setup to cleanup will take approximately 1.5 
 
 ## Goals
 
-Goals of this repository include:
 - Demonstrate how a generative AI-based chatbot can be deployed in AWS GovCloud
-- Support common document types: .docx, .pdf, and .md
-- Use AWS-managed pay-as-you-go services such as Amazon Bedrock to minimize total cost and management burden of a deployed solution
+- Support commonly used document types: .pdf, .docx, and .md
+- Use AWS-managed pay-as-you-go managed services such as Amazon Bedrock to minimize total cost and burden of a deployed solution
 - Expose demonstration code in Amazon SageMaker Studio notebooks to support understanding and ability to modify and deploy in a production environment
 - Demonstrate an advanced Retrieval Augmented Generation (RAG) technique using document summaries to filter search results to documents focused on the topic of the question presented by the user
 
