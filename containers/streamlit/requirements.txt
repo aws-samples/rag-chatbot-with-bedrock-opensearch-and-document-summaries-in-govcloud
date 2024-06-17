@@ -1,0 +1,9 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+
+boto3
+streamlit
+opensearch-py
+opensearch-py-ml
+deprecated
+pandas==2.0.3
