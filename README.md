@@ -118,7 +118,7 @@ To deploy for development and testing, the following steps are required:
         
     - SageMakerStudioSupport – This will build the VPC endpoints, NAT gateway and IAM permissions needed to enable the demo to run in a SageMaker Studio environment.
   
-    c. Set the following CloudFormation stack parameter to "no":
+    c. Set the following CloudFormation stack parameters to "no":
 
     - CreateStreamlitEcs - This will skip building the ECS web front end.
     - CreateLambda - This will skip building the Lambda functions that set up the OpenSearch indices and respond to S3 events.  Note that if the CreateLambda parameter is set to "yes" as described in the Production-like deployment, the deployed Lambda functions will take precedence over the SageMaker Studio notebooks that set up the OpenSearch model and manage the indexing of documents.  These notebooks should not be run if the Lambda functions have been deployed, otherwise conflicts from duplicate processing will occur.
