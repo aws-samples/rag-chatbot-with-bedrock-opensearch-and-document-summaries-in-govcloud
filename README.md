@@ -133,7 +133,7 @@ To deploy for development and testing, the following steps are required:
 
 6.	Provide document base files – Drop sample document base files into the S3 bucket created by the stack.
 
-7.	Run notebooks in Studio – Run notebooks 20, 22, and 23 to follow the process of populating OpenSearch indices and performing semantic searches.  Select default environment settings when opening notebooks.
+7.	Run notebooks in Studio – If the CreateLambda CloudFormation parameter was set to "no" as described above, run notebook 1b, otherwise run notebook 1a to setup.  Then run notebooks 2 and 3 to follow the process of populating OpenSearch indices and performing semantic searches.  Select default SageMaker environment settings when opening notebooks.  Notebook 9 may optionally be run to delete the indicies in OpenSearch.
 
 8.	Ask questions in the user interface – To use the user interface within the Studio environment in single-user mode, run the scripts setup.sh and run.sh.  Click the link provided by the run.sh script to open a browser tab with the user interface and ask questions.
 
