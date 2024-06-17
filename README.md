@@ -123,7 +123,7 @@ To deploy for development and testing, the following steps are required:
 
 3.	Create a user in the SageMaker domain – After the SageMaker domain is created, use the console to create a user in the domain and launch SageMaker Studio.
 
-4.	Copy the SageMaker files from the code repository to Studio – After Studio launches, copy the files from the /sagemaker_studio/notebooks, sagemaker_studio/streamlit, and /containers/streamlit folders of the code repository into a single new folder in Studio.
+4.	Copy the SageMaker files from the code repository to Studio – After Studio launches, copy the files from the /sagemaker_studio/notebooks, sagemaker_studio/streamlit, /containers/streamlit folders of the code repository and file /containers/lambda-index/index_documents_helper.py into a single new folder in Studio.
 
 5.	Provide document base files – Drop sample document base files into the S3 bucket created by the stack.
 
