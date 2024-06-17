@@ -16,7 +16,7 @@ Completing this demonstration from setup to cleanup will take approximately 1.5 
 
 - Demonstrate how a generative AI-based chatbot can be deployed in AWS GovCloud
 - Support commonly used document types: .pdf, .docx, and .md
-- Use AWS-managed pay-as-you-go managed services such as Amazon Bedrock to minimize total cost and burden of a deployed solution
+- Use pay-as-you-go managed services such as Amazon Bedrock to minimize total cost and burden of a deployed solution
 - Expose demonstration code in Amazon SageMaker Studio notebooks to enable understanding and ability to modify the code
 - Demonstrate an advanced Retrieval Augmented Generation (RAG) technique using document summaries to filter search results to documents focused on the topic of the question presented by the user
 
