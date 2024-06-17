@@ -125,7 +125,7 @@ To deploy for development and testing, the following steps are required:
 
     d. It will take 20-30 minutes for the stack to complete.
 
-3.	Create the SageMaker domain – After the stack is complete, run the script create_sagemaker_domain.sh in the sagemaker_studio folder of the code repository to create a SageMaker domain.
+3.	Create the SageMaker domain – After the stack is complete, run the script create_sagemaker_domain.sh in the sagemaker_studio folder of the code repository to create a SageMaker domain.  CloudShell in the AWS console is a useful tool to run such a command.
 
 4.	Create a user in the SageMaker domain – After the SageMaker domain is created, use the console to create a user in the domain and launch SageMaker Studio.
 
