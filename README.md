@@ -93,7 +93,7 @@ To deploy production-like, the following steps are required:
 
     b. Set the CloudFormation stack parameters for the ECR repository names to point to the container images built in the step above: LambdaIndexEcrRepositoryName, LambdaOpenSearchSetupEcrRepositoryName, StreamlitImageEcrRepositoryName
 
-    c. Set the following CloudFormation stack parameters to Yes:
+    c. Set the following CloudFormation stack parameters to "yes":
     
     - CreateLambda – This will build the Lambda functions that perform one-time setup of OpenSearch and handle S3 events to keep the OpenSearch indices in sync with files in S3.
 
@@ -107,30 +107,35 @@ To deploy production-like, the following steps are required:
 
 The development and testing deployment provides the ability to see the code running in a SageMaker Studio environment to understand how it works, try modifications and see the results in real time.  After confirming the changes work as expected, files in the /containers folder of the code repository can be updated for building container images in the production-like deployment outlined in the section above.
 
-Note that if the CreateLambda parameter is set to Yes as described in the Production-like deployment, the deployed Lambda functions will take precedence over the SageMaker Studio notebooks that set up the OpenSearch model and manage the indexing of documents.  These notebooks should not be run if the Lambda functions have been deployed, otherwise conflicts from duplicate processing will occur.
+Container build is not required for the development and testing deployment as long as the CreateStreamlitEcs and CreateLambda parameters in the CloudFormation stack are set to "no" as described below.
 
 To deploy for development and testing, the following steps are required:
 1.	Create the CloudFormation stack located in the /cloudformation folder in the code repository.
 
     a. Name the stack chatbot-demo.
 
-    b. Set the following CloudFormation stack parameter to Yes:
+    b. Set the following CloudFormation stack parameter to "yes":
         
     - SageMakerStudioSupport – This will build the VPC endpoints, NAT gateway and IAM permissions needed to enable the demo to run in a SageMaker Studio environment.
+  
+    c. Set the following CloudFormation stack parameter to "no":
 
-    c. It will take 20-30 minutes for the stack to complete.
+    - CreateStreamlitEcs - This will skip building the ECS web front end.
+    - CreateLambda - This will skip building the Lambda functions that set up the OpenSearch indices and respond to S3 events.  Note that if the CreateLambda parameter is set to "yes" as described in the Production-like deployment, the deployed Lambda functions will take precedence over the SageMaker Studio notebooks that set up the OpenSearch model and manage the indexing of documents.  These notebooks should not be run if the Lambda functions have been deployed, otherwise conflicts from duplicate processing will occur.
 
-2.	Create the SageMaker domain – After the stack is complete, run the script create_sagemaker_domain.sh in the sagemaker_studio folder of the code repository to create a SageMaker domain.
+    d. It will take 20-30 minutes for the stack to complete.
 
-3.	Create a user in the SageMaker domain – After the SageMaker domain is created, use the console to create a user in the domain and launch SageMaker Studio.
+3.	Create the SageMaker domain – After the stack is complete, run the script create_sagemaker_domain.sh in the sagemaker_studio folder of the code repository to create a SageMaker domain.
 
-4.	Copy the SageMaker files from the code repository to Studio – After Studio launches, copy the files from the /sagemaker_studio/notebooks, sagemaker_studio/streamlit, /containers/streamlit folders of the code repository and file /containers/lambda-index/index_documents_helper.py into a single new folder in Studio.
+4.	Create a user in the SageMaker domain – After the SageMaker domain is created, use the console to create a user in the domain and launch SageMaker Studio.
 
-5.	Provide document base files – Drop sample document base files into the S3 bucket created by the stack.
+5.	Copy the SageMaker files from the code repository to Studio – After Studio launches, copy the files from the /sagemaker_studio/notebooks, sagemaker_studio/streamlit, /containers/streamlit folders of the code repository and file /containers/lambda-index/index_documents_helper.py into a single new folder in Studio.
 
-6.	Run notebooks in Studio – Run notebooks 20, 22, and 23 to follow the process of populating OpenSearch indices and performing semantic searches.  Select default environment settings when opening notebooks.
+6.	Provide document base files – Drop sample document base files into the S3 bucket created by the stack.
 
-7.	Ask questions in the user interface – To use the user interface within the Studio environment in single-user mode, run the scripts setup.sh and run.sh.  Click the link provided by the run.sh script to open a browser tab with the user interface and ask questions.
+7.	Run notebooks in Studio – Run notebooks 20, 22, and 23 to follow the process of populating OpenSearch indices and performing semantic searches.  Select default environment settings when opening notebooks.
+
+8.	Ask questions in the user interface – To use the user interface within the Studio environment in single-user mode, run the scripts setup.sh and run.sh.  Click the link provided by the run.sh script to open a browser tab with the user interface and ask questions.
 
 ## Tunable parameters
 
