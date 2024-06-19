@@ -1261,6 +1261,11 @@ Resources:
             Action:
               - bedrock:InvokeModel
             Resource: !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/*
+          - Sid: BedrockGuardrailAccess
+            Effect: Allow
+            Action:
+              - bedrock:ApplyGuardrail
+            Resource: !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:guardrail/${BedrockGuardrail.GuardrailId}
 
   SageMakerNotebookInstanceRole:
     Type: AWS::IAM::Role
@@ -1359,6 +1364,12 @@ Resources:
           - Ref: PrivateSubnet1
         SecurityGroupIds:
           - Ref: OpenSearchSecurityGroup
+
+  OpenSearchServiceDomainServiceLinkedRole:
+    Type: 'AWS::IAM::ServiceLinkedRole'
+    Properties:
+      AWSServiceName: es.amazonaws.com
+      Description: "Role for OpenSearch to access resources in VPC"
 
   LambdaOpenSearchSetupRole:
     Type: AWS::IAM::Role
@@ -1670,6 +1681,11 @@ Resources:
             Action:
               - bedrock:InvokeModel
             Resource: !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/*
+          - Sid: BedrockGuardrailAccess
+            Effect: Allow
+            Action:
+              - bedrock:ApplyGuardrail
+            Resource: !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:guardrail/${BedrockGuardrail.GuardrailId}
 
   EcsTaskRole:
     Type: AWS::IAM::Role
@@ -1687,56 +1703,79 @@ Resources:
       ManagedPolicyArns:
         - !Ref EcsTaskPolicy
 
+  BedrockGuardrail:
+    Type: AWS::Bedrock::Guardrail
+    Properties:
+      Name: chatbot_guardrail
+      Description: Guardrail content filter for prompts and responses 
+      ContentPolicyConfig:
+        FiltersConfig:
+          - Type: SEXUAL 
+            InputStrength: HIGH
+            OutputStrength: HIGH
+          - Type: VIOLENCE 
+            InputStrength: HIGH
+            OutputStrength: HIGH
+          - Type: HATE 
+            InputStrength: HIGH
+            OutputStrength: HIGH
+          - Type: INSULTS 
+            InputStrength: HIGH
+            OutputStrength: HIGH
+          - Type: MISCONDUCT 
+            InputStrength: HIGH
+            OutputStrength: HIGH
+          - Type: PROMPT_ATTACK 
+            InputStrength: HIGH
+            OutputStrength: NONE
+      BlockedInputMessaging: Sorry, I cannot answer this question.
+      BlockedOutputsMessaging: Sorry, I cannot answer this question.
+      Tags:
+        - Key: Name
+          Value: !Ref NameTag
+
+  BedrockGuardrailVersion:
+    Type: AWS::Bedrock::GuardrailVersion
+    Properties:
+      Description: Guardrail content filter version
+      GuardrailIdentifier: !GetAtt BedrockGuardrail.GuardrailId
+
 Outputs:
   Region:
     Description: Region
     Value: !Ref AWS::Region
-    Export:
-      Name: !Sub ${AWS::StackName}-Region
   AccountId:
     Description: Account ID
     Value: !Ref AWS::AccountId
-    Export:
-      Name: !Sub ${AWS::StackName}-AccountId
   VPC:
     Description: VPC ID
     Value: !Ref VPC
-    Export:
-      Name: !Sub ${AWS::StackName}-VPC
   PrivateSubnet1:
     Description: Private Subnet 1
     Value: !Ref PrivateSubnet1
-    Export:
-      Name: !Sub ${AWS::StackName}-PrivateSubnet1
   PrivateSubnet2:
     Description: Private Subnet 2
     Value: !Ref PrivateSubnet2
-    Export:
-      Name: !Sub ${AWS::StackName}-PrivateSubnet2
   SageMakerSecurityGroup:
     Condition: IncludeSageMakerStudioSupport
     Description: SageMaker Security Group
     Value: !Ref SageMakerSecurityGroup
-    Export:
-      Name: !Sub ${AWS::StackName}-SageMakerSecurityGroup
   SageMakerExecutionRoleArn:
     Condition: IncludeSageMakerStudioSupport
     Description: SageMaker Execution Role ARN
     Value: !GetAtt SageMakerNotebookInstanceRole.Arn
-    Export:
-      Name: !Sub ${AWS::StackName}-SageMakerExecutionRoleArn
   DataBucket:
     Description: Data Bucket
     Value: !Ref DataBucket
-    Export:
-      Name: !Sub ${AWS::StackName}-DataBucket
   OpenSearchServiceDomain:
     Description: OpenSearch Service Domain
     Value: !Ref OpenSearchServiceDomain
-    Export:
-      Name: !Sub ${AWS::StackName}-OpenSearchServiceDomain
   OpenSearchServiceDomainEndpoint:
     Description: Endpoint address of the OpenSearch Service Domain
     Value: !GetAtt OpenSearchServiceDomain.DomainEndpoint
-    Export:
-      Name: !Sub OpenSearchServiceDomainEndpoint
+  BedrockGuardrailId:
+    Description: Bedrock Guardrail Id
+    Value: !GetAtt BedrockGuardrail.GuardrailId
+  BedrockGuardrailVersion:
+    Description: Bedrock Guardrail Version
+    Value: !GetAtt BedrockGuardrailVersion.Version
