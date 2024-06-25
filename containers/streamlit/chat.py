@@ -34,6 +34,16 @@ model_id = 'amazon.titan-text-express-v1'
 accept = 'application/json' 
 content_type = 'application/json'
 
+# Get the Bedrock Guardrails parameters from CloudFormation
+stack_name = "chatbot-demo"
+cf_client = boto3.client('cloudformation')
+response = cf_client.describe_stacks(StackName=stack_name)
+outputs = response["Stacks"][0]["Outputs"]
+bedrock_guardrail_id = list(filter(lambda outputs: outputs['OutputKey'] == 'BedrockGuardrailId', outputs))[0]["OutputValue"]
+bedrock_guardrail_version = list(filter(lambda outputs: outputs['OutputKey'] == 'BedrockGuardrailVersion', outputs))[0]["OutputValue"]
+stack_parameters = response["Stacks"][0]["Parameters"]
+bedrock_guardrails_block_message = list(filter(lambda stack_parameters: stack_parameters['ParameterKey'] == 'BedrockGuardrailsBlockMessage', stack_parameters))[0]["ParameterValue"]
+
 if "messages" not in st.session_state:
     st.session_state.messages = [
         {"role": "assistant", "content": "Ask me a question about your documents."}
@@ -66,13 +76,16 @@ if prompt := st.chat_input("Enter your question"):
                 body=body, 
                 modelId=model_id, 
                 accept=accept, 
-                contentType=content_type
+                contentType=content_type,
+                guardrailIdentifier=bedrock_guardrail_id,
+                guardrailVersion=bedrock_guardrail_version
             )
             response_body = json.loads(response.get('body').read())
             outputText = response_body.get('results')[0].get('outputText')
             st.markdown(outputText)
 #            st.write(outputText)
 #            st.write(response_body)
-            with st.expander("References"):
-                st.write(reference_text)
+            if outputText != bedrock_guardrails_block_message:
+                with st.expander("References"):
+                    st.write(reference_text)
     st.session_state.messages.append({"role": "assistant", "content": outputText})
