@@ -52,6 +52,12 @@ The search component includes a document summary feature as an advanced Retrieva
 
 ![image info](images/summary_rag_approach_overview.png)
 
+## Guardrails to filter harmful content
+
+The chatbot includes a harmful content filter enabled by Guardrails for Amazon Bedrock.  This provides configurable thresholds to filter content across hate, insults, sexual, violence, misconduct, and prompt attack.  If a user asks a question, or an answer is retrieved that exceeds the guardrail threshold in any of these categories, the chatbot answers "Sorry, I cannot answer this question." or other block message configured in a CloudFormation stack parameter.
+
+The CloudFormation template deploys a guardrail and a guardrail version.  The chat.py file in the /containers/streamlit folder gets the guardrail ID and version from the CloudFormation stack and applies those in every request to Bedrock.
+
 ## Deployment options
 
 Two deployment options are available.  One or both can be chosen using parameters in CloudFormation at stack creation.
@@ -139,17 +145,17 @@ To deploy for development and testing, the following steps are required:
 
 ## Tunable parameters
 
-Within the code in the /containers folder of the repository, several tunable parameters can be changed to best align with the use case and document base files.
+Several tunable parameters can be changed to best align with the use case:
 
-chat.py
+/cloudformation/chatbot_demo_cfn.yml
+
+- Resource BedrockGuardrail FiltersConfig sets the strength for each type of content filter.  Additional information on the Bedrock Guardrails filter config is available in the AWS documentation at https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-bedrock-guardrail-contentfilterconfig.html
+
+/containers/streamlit/chat.py
 
 - text_gen_config – This is used to set the configuration for Titan Text Express as the LLM used to present answers to the users based on the document context retrieved through OpenSearch.  Conservative temperature and topP values are set by default to stay close to the original content.  Additional information on these parameters is available in the AWS documentation at https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-titan-text.html
 
-index_documents_helper.py
-
-- text_gen_config – This is used to set the configuration for Titan Text Express as the LLM used to summarize documents used in the document summary index.  Conservative temperature and topP values are set by default to stay close to the original content.  Additional information on these parameters is available in the AWS documentation at https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-titan-text.html
-
-opensearch_retrieve_helper.py
+/containers/streamlit/opensearch_retrieve_helper.py
 
 - use_summary – If set to true the relevance of all the text in a document from the document summary index is used as part of the overall relevance score for chunks.  If set to false the document summary index is not used, and only the full text relevance scores are used to determine the relevance of chunks.
 
@@ -160,6 +166,10 @@ opensearch_retrieve_helper.py
 - full_text_hit_score_threshold – Sets the percentage value used as a cut-off for relevance scores retrieved from the OpenSearch full text index.  Any full text results with a relevance score less than this value times the highest result’s relevance score are excluded from the context.
 
 - summary_weight_over_full_text – Sets the weighting of document summary result vs. full text result relevance scores in calculating the overall relevance score of a particular chunk.  Higher values weight the document summary relevance more.  Lower values weight the full text summary relevance more.
+
+/containers/lambda_index/index_documents_helper.py
+
+- text_gen_config – This is used to set the configuration for Titan Text Express as the LLM used to summarize documents used in the document summary index.  Conservative temperature and topP values are set by default to stay close to the original content.  Additional information on these parameters is available in the AWS documentation at https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-titan-text.html
 
 /containers/lambda_index/app.py
 
