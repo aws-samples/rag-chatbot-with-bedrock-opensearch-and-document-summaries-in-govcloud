@@ -88,6 +88,10 @@ Parameters:
     AllowedValues:
       - "yes"
       - "no"
+  BedrockGuardrailsBlockMessage:
+    Description: Message given to user for prompts or responses blocked by Bedrcok Guardrail
+    Type: String
+    Default: "Sorry, I cannot answer this question."
 
 Conditions:
   IncludeLambda: !Equals [!Ref "CreateLambda", "yes"]
@@ -1676,6 +1680,12 @@ Resources:
               - ""
               - - !GetAtt OpenSearchServiceDomain.Arn
                 - "/*"
+          - Sid: CloudFormationAccess
+            Effect: Allow
+            Action:
+              - cloudformation:DescribeStacks
+              - cloudformation:ListStacks
+            Resource: "*"
           - Sid: BedrockAccess
             Effect: Allow
             Action:
@@ -1728,8 +1738,8 @@ Resources:
           - Type: PROMPT_ATTACK 
             InputStrength: HIGH
             OutputStrength: NONE
-      BlockedInputMessaging: Sorry, I cannot answer this question.
-      BlockedOutputsMessaging: Sorry, I cannot answer this question.
+      BlockedInputMessaging: !Ref BedrockGuardrailsBlockMessage
+      BlockedOutputsMessaging: !Ref BedrockGuardrailsBlockMessage
       Tags:
         - Key: Name
           Value: !Ref NameTag
