@@ -150,6 +150,7 @@ Several tunable parameters can be changed to best align with the use case:
 /cloudformation/chatbot_demo_cfn.yml
 
 - Resource BedrockGuardrail FiltersConfig sets the strength for each type of content filter.  Additional information on the Bedrock Guardrails filter config is available in the AWS documentation at https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-bedrock-guardrail-contentfilterconfig.html
+- Parameter BedrockGuardrailsBlockMessage sets the message given to the user if Bedrock Guardrails blocks the input or output.
 
 /containers/streamlit/chat.py
 
