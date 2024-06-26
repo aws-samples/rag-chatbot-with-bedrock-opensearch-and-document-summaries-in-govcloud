@@ -158,7 +158,6 @@ def summarize_documents(region_name, bucket_name, key_list, max_summary_length):
     )
     
     opensearch_payload = []
-#    count = 0
 
     for key in key_list:
         filename, file_extension = os.path.splitext(key)
@@ -194,11 +193,6 @@ def summarize_documents(region_name, bucket_name, key_list, max_summary_length):
             }
             
             opensearch_payload.append(body)
-        
-#        count += 1
-#        if count > 7:
-#            break
-        
     return opensearch_payload
 
 # Function to write to opensearch summary index a list of dictionaries as OpenSearch payload
@@ -318,8 +312,6 @@ def text_string_to_opensearch(text, key, opensearch_client, full_text_index_name
             "text": clean_section,
             "section_heading": section_heading
         }
-        #print(body)
-        #print("\n")
 
         response = opensearch_client.index(index=full_text_index_name, body=body)
         if response['result'] == "created":
@@ -352,7 +344,6 @@ def split_and_index_full_text(region_name, opensearch_host, bucket_name, key_lis
     
     # Iterate through the documents in the S3 key list, read the contents and split into sections
     for count, key in enumerate(key_list):
-        #print(count, "- Processing", key)
         filename, file_extension = os.path.splitext(key)
         # Read and split markdown file
         if file_extension == ".md":
@@ -415,7 +406,6 @@ def delete_summary_index(region_name, opensearch_host, key_list, summary_index_n
     
     # Iterate through the documents in the key list, delete any records in OpenSearch index
     for key in key_list:
-        #print("- Deleting summary for", key)
         response = opensearch_client.delete_by_query(index=summary_index_name, body={
           'query': {'match_phrase':{'document': key}}
         })
@@ -441,7 +431,6 @@ def delete_full_text_index(region_name, opensearch_host, key_list, full_text_ind
     
     # Iterate through the documents in the key list, delete any records in OpenSearch index
     for key in key_list:
-        #print("- Deleting full text for", key)
         response = opensearch_client.delete_by_query(index=full_text_index_name, body={
           'query': {'match_phrase':{'document': key}}
         })
