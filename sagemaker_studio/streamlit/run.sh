@@ -12,9 +12,10 @@ CYAN='\033[1;36m'
 GREEN='\033[1;32m'
 NC='\033[0m'
 S3_PATH=$1
+CURRENT_REGION=`aws configure list | grep region | awk '{print $2}'`
 
 # Set the environment variables for OpenSearch
-export OPENSEARCH_SERVICE_ENDPOINT=`aws cloudformation describe-stacks --region us-gov-west-1 --query "Stacks[?StackName=='chatbot-demo'][].Outputs[?OutputKey=='OpenSearchServiceDomainEndpoint'].OutputValue" --output text`
+export OPENSEARCH_SERVICE_ENDPOINT=`aws cloudformation describe-stacks --region $CURRENT_REGION --query "Stacks[?StackName=='chatbot-demo'][].Outputs[?OutputKey=='OpenSearchServiceDomainEndpoint'].OutputValue" --output text`
 export OPENSEARCH_FULL_TEXT_INDEX="chatbot-full_text"
 export OPENSEARCH_SUMMARY_INDEX="chatbot-summary"
 
