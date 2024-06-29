@@ -212,10 +212,9 @@ To clean up, perform the following steps:
 
     - In the console, find the SageMaker domain ID.
 
-    - In the console, open CloudShell and run the following command, replacing the DomainID placeholder with the actual domain ID from the console:
-`aws --region us-gov-west-1 sagemaker delete-domain --domain-id {DomainId} --retention-policy HomeEfsFileSystem=Delete`
+    - Run the script delete_sagemaker_domain.sh in the sagemaker_studio folder of the code repository to delete the SageMaker domain. CloudShell in the AWS console is a useful tool to run such a command.
 
-    - In the console, check the status of the domain.  Wait until the deletion completes.
+    - In the SageMaker console, check the status of the domain.  Wait until the status of the domain changes to deleted.
 
 3.	Delete the stack – In the CloudFormation console, select the chatbot-demo stack, choose Delete and confirm.  Deletion will take several minutes.
 
