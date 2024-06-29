@@ -218,6 +218,12 @@ To clean up, perform the following steps:
 
 3.	Delete the stack – In the CloudFormation console, select the chatbot-demo stack, choose Delete and confirm.  Deletion will take several minutes.
 
+## Supported region
+
+This repository is primarily intended for use in the AWS us-gov-west-1 region.
+
+This has also worked in the us-east-1 region by changing the default availability zone parameters in the CloudFormation stack and launching the development and test environment in SageMaker Studio Classic.  Regions and partitions are referred by parameters in code to the extent possible, but testing in other regions is limited.
+
 ## Contributors
 
 - Jason Stollings, Senior Solutions Architect
