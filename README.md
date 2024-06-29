@@ -222,7 +222,7 @@ To clean up, perform the following steps:
 
 This repository is primarily intended for use in the AWS us-gov-west-1 region.
 
-This has also worked in the us-east-1 region by changing the default availability zone parameters in the CloudFormation stack and launching the development and test environment in SageMaker Studio Classic.  Regions and partitions are referred by parameters in code to the extent possible, but testing in other regions is limited.
+This has also worked in the us-east-1 region by changing the default availability zone parameters in the CloudFormation stack and launching the development and test environment in SageMaker Studio Classic.  Regions and partitions are referred by parameters in code to help enable region portability, but testing in other regions is limited.
 
 ## Contributors
 
