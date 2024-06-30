@@ -22,6 +22,7 @@ RUN adduser -u 5678 --disabled-password --gecos "" appuser
 
 WORKDIR /home/appuser/app
 COPY chat.py /home/appuser/app
+COPY /pages/index_status.py /home/appuser/app/pages/index_status.py
 COPY get_opensearch_model_id.py /home/appuser/app
 COPY opensearch_retrieve_helper.py /home/appuser/app
 
