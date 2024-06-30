@@ -12,34 +12,18 @@ Parameters:
     Description: CIDR block for Private Subnet
     Type: String
     Default: 172.10.1.0/24
-  PrivateSubnet1AZ:
-    Description: Availability Zone for Private Subnet 1
-    Type: String
-    Default: us-gov-west-1a
   PrivateSubnet2CidrBlock:
     Description: CIDR block for Private Subnet
     Type: String
     Default: 172.10.2.0/24
-  PrivateSubnet2AZ:
-    Description: Availability Zone for Private Subnet 1
-    Type: String
-    Default: us-gov-west-1b
   PublicSubnet1CidrBlock:
     Description: CIDR block for Public Subnet
     Type: String
     Default: 172.10.3.0/24
-  PublicSubnet1AZ:
-    Description: Availability Zone for Public Subnet
-    Type: String
-    Default: us-gov-west-1a
   PublicSubnet2CidrBlock:
     Description: CIDR block for Public Subnet
     Type: String
     Default: 172.10.4.0/24
-  PublicSubnet2AZ:
-    Description: Availability Zone for Public Subnet
-    Type: String
-    Default: us-gov-west-1b
   NameTag:
     Description: The value of the Name tag for resources created in this stack
     Type: String
@@ -116,7 +100,7 @@ Resources:
     Properties:
       VpcId: !Ref VPC
       CidrBlock: !Ref PrivateSubnet1CidrBlock
-      AvailabilityZone: !Ref PrivateSubnet1AZ
+      AvailabilityZone: !Sub ${AWS::Region}a
       Tags:
       - Key: Name
         Value: !Sub 
@@ -128,7 +112,7 @@ Resources:
     Properties:
       VpcId: !Ref VPC
       CidrBlock: !Ref PrivateSubnet2CidrBlock
-      AvailabilityZone: !Ref PrivateSubnet2AZ
+      AvailabilityZone: !Sub ${AWS::Region}b
       Tags:
       - Key: Name
         Value: !Sub 
@@ -140,7 +124,7 @@ Resources:
     Properties:
       VpcId: !Ref VPC
       CidrBlock: !Ref PublicSubnet1CidrBlock
-      AvailabilityZone: !Ref PublicSubnet1AZ
+      AvailabilityZone: !Sub ${AWS::Region}a
       Tags:
       - Key: Name
         Value: !Sub 
@@ -152,7 +136,7 @@ Resources:
     Properties:
       VpcId: !Ref VPC
       CidrBlock: !Ref PublicSubnet2CidrBlock
-      AvailabilityZone: !Ref PublicSubnet2AZ
+      AvailabilityZone: !Sub ${AWS::Region}b
       Tags:
       - Key: Name
         Value: !Sub 
@@ -1219,6 +1203,7 @@ Resources:
               - sagemaker:CreateApp
               - sagemaker:DeleteApp
               - sagemaker:AddTags
+              - sagemaker:CreatePresignedDomainUrl
             Resource: !Sub arn:${AWS::Partition}:sagemaker:${AWS::Region}:${AWS::AccountId}:*
             Effect: Allow
           - Sid: EC2Access
