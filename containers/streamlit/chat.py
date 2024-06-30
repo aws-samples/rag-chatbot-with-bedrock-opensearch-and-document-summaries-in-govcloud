@@ -10,6 +10,8 @@ import logging
 
 st.title("Question and Answer Bot")
 
+st.sidebar.success("Select a demo above.")
+
 # Get the OpenSearch model ID
 opensearch_model_id = opensearch_model_id()
 
