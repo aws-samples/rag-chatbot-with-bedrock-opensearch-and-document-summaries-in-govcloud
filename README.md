@@ -178,6 +178,12 @@ Several tunable parameters can be changed to best align with the use case:
 
 - Max_summary_length – Sets the maximum document summary size in characters.  Documents are progressively summarized to fit within this limit.  Smaller values produce more focused summaries.  Larger values require less time to produce.
 
+## Document index status feature
+
+The indexing status of the documents in the S3 bucket created by the CloudFormation stack can be viewed by selecting "Index status" in the side menu of the web user interface.  This shows a list of all the documents in the S3 bucket and the number of summary and full text index chunks in OpenSearch.  If zero chunks are shown then indexing has likely not yet begun for that document.  The screenshot below shows an example screenshot of the feature.
+
+![image info](images/document_index_status_screenshot.png)
+
 ## Markdown S3 key to weblink reference feature
 
 In a case where markdown formatted source documents in S3 are also the source for a web site accessible to users, the references provided by the Streamlit user interface can optionally be configured to be clickable links to the target web pages.  This can help provide a better user experience in this use case by enabling one-click access to references.
