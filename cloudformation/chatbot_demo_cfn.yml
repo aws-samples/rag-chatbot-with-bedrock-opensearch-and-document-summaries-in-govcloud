@@ -1681,6 +1681,11 @@ Resources:
             Action:
               - bedrock:ApplyGuardrail
             Resource: !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:guardrail/${BedrockGuardrail.GuardrailId}
+          - Sid: S3Access
+            Effect: Allow
+            Action:
+              - s3:ListBucket
+            Resource: !Sub arn:${AWS::Partition}:s3:::*
 
   EcsTaskRole:
     Type: AWS::IAM::Role
