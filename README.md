@@ -20,7 +20,7 @@ Completing this demonstration from setup to cleanup will take approximately 1.5 
 - Expose demonstration code in Amazon SageMaker Studio notebooks to enable understanding and ability to modify the code
 - Demonstrate an advanced Retrieval Augmented Generation (RAG) technique using document summaries to filter search results to documents focused on the topic of the question presented by the user
 - Demonstrate adjusting RAG search results based on document age to prefer newer content
-- Demonstrate using Amazon Bedrock Guardrails to filter harmful content from questions and answers
+- Demonstrate filtering harmful content from questions and answers using Guardrails for Amazon Bedrock
 
 ## Architecture
 
