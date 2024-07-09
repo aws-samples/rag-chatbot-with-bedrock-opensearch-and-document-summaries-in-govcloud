@@ -5,7 +5,7 @@ import boto3
 import json
 import os
 from io import BytesIO
-from PyPDF2 import PdfReader
+from pypdf import PdfReader
 import docx
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from opensearchpy import OpenSearch, RequestsHttpConnection, AWSV4SignerAuth, helpers
@@ -388,8 +388,84 @@ def split_and_index_full_text(region_name, opensearch_host, bucket_name, key_lis
         )
     return result_summary
 
-# Function to delete all records for a list of documents from OpenSearch summary index
-def delete_summary_index(region_name, opensearch_host, key_list, summary_index_name):
+# Function to determine a date for each file in a list and add it to the OpenSearch date index
+def index_date(region_name, opensearch_host, bucket_name, key_list, date_index_name):
+
+    documents_indexed = 0
+    success_record_count = 0
+    error_record_count = 0
+    
+    # Get OpenSearch client
+    credentials = boto3.Session().get_credentials()
+    auth = AWSV4SignerAuth(credentials, region_name)
+    opensearch_client = OpenSearch(
+        hosts = [{'host': opensearch_host, 'port': 443}],
+        http_auth = auth,
+        use_ssl = True,
+        verify_certs = True,
+        connection_class = RequestsHttpConnection
+    )
+
+    # Get S3 client and resource
+    s3_client = boto3.client("s3")
+    s3_resource = boto3.resource('s3')
+    
+    # Iterate through the documents in the S3 key list, determine a date for each and write to OpenSearch index
+    # There are different ways of determining dates for files.  Update code below to suit your use case.
+    for count, key in enumerate(key_list):
+        filename, file_extension = os.path.splitext(key)
+
+        # If a markdown file, date is based on S3 last modified date
+        if file_extension == ".md":
+            document_date = s3_client.get_object(Bucket=bucket_name, Key=key)[
+                "LastModified"]            
+
+        # If a pdf file, date is based on pdf metadata creation date
+        elif file_extension == ".pdf":
+            pdf_file = s3_client.get_object(Bucket=bucket_name, Key=key)[
+                    "Body"
+                ].read()
+            reader = PdfReader(BytesIO(pdf_file))
+            document_date = reader.metadata.creation_date
+            
+        # If a docx file, date is based on docx metadata creation date
+        elif file_extension == ".docx":
+            bucket = s3_resource.Bucket(bucket_name)
+            object = bucket.Object(key)
+            file_stream = BytesIO()
+            object.download_fileobj(file_stream)
+            document = docx.Document(file_stream)
+            prop = document.core_properties
+            document_date = prop.created
+
+        # Not a supported file type, skip
+        else:
+            print(key, "- not a supported file type.", "File extension:", file_extension)
+            continue
+
+        documents_indexed += 1
+            
+        # Write date to OpenSearch date index
+        item = {
+            "document": key,
+            "document_date": document_date
+        }
+        response = opensearch_client.index(index=date_index_name, body=item)
+        
+        if response['result'] == "created":
+            success_record_count += 1
+        else:
+            error_record_count += 1
+    
+    result_summary = {
+        'documents': documents_indexed,
+        'success_record_count': success_record_count,
+        'error_record_count': error_record_count
+    }
+    return result_summary
+
+# Function to delete all records for a list of document keys from OpenSearch index
+def delete_index_recs_by_key_list(region_name, opensearch_host, key_list, index_name):
 
     # Get OpenSearch client
     credentials = boto3.Session().get_credentials()
@@ -406,32 +482,7 @@ def delete_summary_index(region_name, opensearch_host, key_list, summary_index_n
     
     # Iterate through the documents in the key list, delete any records in OpenSearch index
     for key in key_list:
-        response = opensearch_client.delete_by_query(index=summary_index_name, body={
-          'query': {'match_phrase':{'document': key}}
-        })
-        results.append(response)
-        
-    return results
-        
-# Function to delete all records for a list of documents from OpenSearch full text index
-def delete_full_text_index(region_name, opensearch_host, key_list, full_text_index_name):
-
-    # Get OpenSearch client
-    credentials = boto3.Session().get_credentials()
-    auth = AWSV4SignerAuth(credentials, region_name)
-    opensearch_client = OpenSearch(
-        hosts = [{'host': opensearch_host, 'port': 443}],
-        http_auth = auth,
-        use_ssl = True,
-        verify_certs = True,
-        connection_class = RequestsHttpConnection
-    )
-
-    results = []
-    
-    # Iterate through the documents in the key list, delete any records in OpenSearch index
-    for key in key_list:
-        response = opensearch_client.delete_by_query(index=full_text_index_name, body={
+        response = opensearch_client.delete_by_query(index=index_name, body={
           'query': {'match_phrase':{'document': key}}
         })
         results.append(response)

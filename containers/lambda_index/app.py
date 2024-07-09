@@ -6,11 +6,11 @@ import boto3
 import urllib.parse
 from opensearchpy import OpenSearch, RequestsHttpConnection, AWSV4SignerAuth, helpers
 from index_documents_helper import (
-    delete_summary_index,
     summarize_documents, 
     index_opensearch_summary_payload, 
-    delete_full_text_index,
-    split_and_index_full_text
+    split_and_index_full_text,
+    index_date,
+    delete_index_recs_by_key_list
 )
 
 def handler(event, context):
@@ -41,6 +41,7 @@ def handler(event, context):
     max_summary_length = 5000
     full_text_index_name = "chatbot-full_text"
     summary_index_name = "chatbot-summary"
+    date_index_name = "chatbot-date-index"
     pipeline_id = "chatbot-nlp-pipeline"
 
     # Get the current region
@@ -80,11 +81,11 @@ def handler(event, context):
     key_list = [key]
     
     # Delete any existing records in the OpenSearch summary index for this document
-    summary_delete_result = delete_summary_index(
+    summary_delete_result = delete_index_recs_by_key_list(
         region_name = region_name, 
         opensearch_host = host, 
         key_list = key_list, 
-        summary_index_name = summary_index_name
+        index_name = summary_index_name
     )
     print("Summary text delete result:", summary_delete_result)
 
@@ -109,15 +110,15 @@ def handler(event, context):
         print("Summary indexing result:", summary_indexing_result)
 
     # Delete any existing records in the OpenSearch full text index for this document
-    full_text_delete_result = delete_full_text_index(
+    full_text_delete_result = delete_index_recs_by_key_list(
         region_name = region_name, 
         opensearch_host = host, 
         key_list = key_list, 
-        full_text_index_name = full_text_index_name
+        index_name = full_text_index_name
     )
     print("Full text delete result:", full_text_delete_result)
 
-    # Iterate through list of markdown files, split into sections and add to OpenSearch index
+    # Iterate through list of files, split into sections and add to OpenSearch index
     if s3_notification["Records"][0]["eventName"] == "ObjectCreated:Put":
         full_text_indexing_result = split_and_index_full_text(
             region_name = region_name, 
@@ -127,5 +128,25 @@ def handler(event, context):
             full_text_index_name = full_text_index_name
         )
         print("Full text indexing result:", full_text_indexing_result)
+
+    # Delete any existing records in the OpenSearch date index for this document
+    date_delete_result = delete_index_recs_by_key_list(
+        region_name = region_name, 
+        opensearch_host = host, 
+        key_list = key_list, 
+        index_name = date_index_name
+    )
+    print("Date delete result:", date_delete_result)
+
+    # Iterate through list of files, get date and add to OpenSearch index
+    if s3_notification["Records"][0]["eventName"] == "ObjectCreated:Put":
+        date_indexing_result = index_date(
+            region_name = region_name, 
+            opensearch_host = host,
+            bucket_name = bucket_name,
+            key_list = key_list,
+            date_index_name = date_index_name
+        )
+        print("Date indexing result:", date_indexing_result)
 
     return {"statusCode": 200}

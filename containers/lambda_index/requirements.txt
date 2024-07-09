@@ -3,5 +3,5 @@
 
 langchain-text-splitters
 opensearch-py
-pyPDF2
+pypdf
 python-docx
