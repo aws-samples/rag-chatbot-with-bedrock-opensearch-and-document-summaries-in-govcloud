@@ -18,6 +18,7 @@ CURRENT_REGION=`aws configure list | grep region | awk '{print $2}'`
 export OPENSEARCH_SERVICE_ENDPOINT=`aws cloudformation describe-stacks --region $CURRENT_REGION --query "Stacks[?StackName=='chatbot-demo'][].Outputs[?OutputKey=='OpenSearchServiceDomainEndpoint'].OutputValue" --output text`
 export OPENSEARCH_FULL_TEXT_INDEX="chatbot-full_text"
 export OPENSEARCH_SUMMARY_INDEX="chatbot-summary"
+export OPENSEARCH_DATE_INDEX="chatbot-date-index"
 
 # Run the Streamlit app and save the output to "temp.txt"
 streamlit run chat.py > temp.txt & 
