@@ -38,9 +38,10 @@ The diagram below illustrates the high-level architecture.
 1. The Hugging Face distilroberta-v1 plugin is installed in OpenSearch by a Lambda function or a SageMaker Studio notebook
 2. New documents in the S3 bucket are summarized using Amazon Bedrock and indexed into OpenSearch by a Lambda function or a SageMaker Studio notebook
 3. New documents in the S3 bucket have their full text indexed into OpenSearch by a Lambda function or a SageMaker Studio notebook
-4. A user accesses the Streamlit web user interface, which runs on Elastic Container Service or in SageMaker Studio
-5. The user’s question is searched against the document summary index in OpenSearch to identify the most relevant documents.  The user’s question is searched against the full text index in OpenSearch.  Full text results from documents that have summary matches are promoted.
-6. The most relevant search results are provided as context along with the user’s question to Amazon Bedrock’s Titan Text Express foundation model.  The foundation model transforms the search results into a concise, meaningful answer.  This answer along with document references are presented back to the user in the Streamlit web user interface.
+4. New documents in the S3 bucket have their date indexed into OpenSearch by a Lambda function or a SageMaker Studio notebook
+5. A user accesses the Streamlit web user interface, which runs on Elastic Container Service or in SageMaker Studio
+6. The user’s question is searched against the document summary index in OpenSearch to identify the most relevant documents.  The user’s question is searched against the full text index in OpenSearch.  Full text results from documents that have summary matches are promoted.
+7. The most relevant search results are provided as context along with the user’s question to Amazon Bedrock’s Titan Text Express foundation model.  The foundation model transforms the search results into a concise, meaningful answer.  This answer along with document references are presented back to the user in the Streamlit web user interface.
 
 ## Semantic search capability
 
@@ -51,6 +52,16 @@ This chatbot uses the semantic search capability of Amazon OpenSearch to find re
 The search component includes a document summary feature as an advanced Retrieval Augmented Generation (RAG) technique.  This can improve the relevance of answers by comparing the question posed by the user to summaries of the documents in the document base, and ranking the results of full-text search from those documents with relevant summaries higher.  This approach can help reduce occurrences of search results from mentions in less relevant or authoritative documents.  The feature can be enabled or disabled by setting the parameter use_summary in the file /containers/streamlit/opensearch_retrieve_helper.py.  More details are in the Tunable parameters section below.  The diagram below illustrates how the document summary process can improve search results.
 
 ![image info](images/summary_rag_approach_overview.png)
+
+## Search based on document age
+
+For many use cases, documents that are newer are more relevant, since older documents may contain out-of-date information.  This chatbot includes a search component that can lower the likelihood of older documents appearing in search results based on configurable parameters.
+
+To enable this technique, a date must be assigned to each document as it is ingested.  For this demonstration, dates for .pdf and .docx files are set according to each document’s metadata creation date, and for .md files the date is set according to the last modified date in S3.  Other approaches of determining document date may be more appropriate for your use case.  The date of each Document is set in the index_documents_helper.py file in the /containers/lambda_index folder.  Here each document’s date is stored in an OpenSearch index which can later be queried.
+
+To enable age-based search, the parameter use_date must be set to True and the years_until_no_value must be set to a number of years age where the document no longer has value.  These parameters are located in the file opensearch_retrieve_helper in the /containers/streamlit folder for production-like deployment and the file 3_search_indices.ipynb in the /notebooks/sagemaker_studio folder for development and test.
+
+Based on the above parameters, each full text search relevance score is adjusted in proportion to the document’s age until the years_until_no_value is reached, at which point the relevance score is zero.  Full text hits with lower scores are less likely to appear than those with higher scores.  All full text search hits with adjusted relevance scores below the value set in the full_text_hit_score_threshold parameter are ignored
 
 ## Guardrails to filter harmful content
 
@@ -158,7 +169,7 @@ Several tunable parameters can be changed to best align with the use case:
 
 /containers/streamlit/opensearch_retrieve_helper.py
 
-- use_summary – If set to true the relevance of all the text in a document from the document summary index is used as part of the overall relevance score for chunks.  If set to false the document summary index is not used, and only the full text relevance scores are used to determine the relevance of chunks.
+- use_summary – If set to True the relevance of all the text in a document from the document summary index is used as part of the overall relevance score for chunks.  If set to false the document summary index is not used, and only the full text relevance scores are used to determine the relevance of chunks.
 
 - max_length_rag_text – Sets the maximum length of context provided to Titan Text Express from the document context retrieved through OpenSearch.  Any context exceeding this length is truncated.  Since context is sorted in reverse order of relevance score, the least relevant context is most likely to be truncated.
 
@@ -167,6 +178,10 @@ Several tunable parameters can be changed to best align with the use case:
 - full_text_hit_score_threshold – Sets the percentage value used as a cut-off for relevance scores retrieved from the OpenSearch full text index.  Any full text results with a relevance score less than this value times the highest result’s relevance score are excluded from the context.
 
 - summary_weight_over_full_text – Sets the weighting of document summary result vs. full text result relevance scores in calculating the overall relevance score of a particular chunk.  Higher values weight the document summary relevance more.  Lower values weight the full text summary relevance more.
+
+- use_date - If set to True the age of each document will be used to adjust the relevance of full text hit scores downward as they age until the years_until_no_value age is reached, at which point the relevance score will become zero.
+
+- years_until_no_value - Sets the number of years each document may age until it has no value as described above.
 
 /containers/lambda_index/index_documents_helper.py
 
@@ -180,7 +195,9 @@ Several tunable parameters can be changed to best align with the use case:
 
 ## Document index status feature
 
-The indexing status of the documents in the S3 bucket created by the CloudFormation stack can be viewed by selecting "Index status" in the side menu of the web user interface.  This shows a list of all the documents in the S3 bucket and the number of summary and full text index chunks in OpenSearch.  If zero chunks are shown then indexing has likely not yet begun for that document.  The screenshot below shows an example screenshot of the feature.
+The indexing status of the documents in the S3 bucket created by the CloudFormation stack can be viewed by selecting "Index status" in the side menu of the web user interface.  This shows a list of all the documents in the S3 bucket and the number of summary and full text index chunks in OpenSearch.  If zero chunks are shown then indexing has likely not yet begun for that document.  By scrolling right the date of each document as recorded in the date index can also be viewed. 
+
+The screenshot below shows an example screenshot of the feature.
 
 ![image info](images/document_index_status_screenshot.png)
 
