@@ -10,7 +10,7 @@ import logging
 
 st.title("Question and Answer Bot")
 
-st.sidebar.success("Select a demo above.")
+#st.sidebar.success("Select a demo above.")
 
 # Get the OpenSearch model ID
 opensearch_model_id = opensearch_model_id()
@@ -32,7 +32,7 @@ text_gen_config = {
     "temperature": 0,
     "topP": 1
 }
-model_id = 'amazon.titan-text-express-v1'
+bedrock_model_id = 'amazon.titan-text-express-v1'
 accept = 'application/json' 
 content_type = 'application/json'
 
@@ -63,27 +63,30 @@ if prompt := st.chat_input("Enter your question"):
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
             # Query OpenSearch
-            top_answer_text, reference_text = opensearch_query(prompt, opensearch_model_id)
+            rag_text, reference_text = opensearch_query(prompt, opensearch_model_id)
+
             # Prepare the request to the model
             prompt_template = '''Context - {context}\n\n\n\n
             Based only on the above context, answer this question - {query_text}'''
-            prompt_data = prompt_template.replace("{context}", top_answer_text).replace("{query_text}", prompt)
+            prompt_data = prompt_template.replace("{context}", rag_text).replace("{query_text}", prompt)
             body = json.dumps({
                 "inputText": prompt_data,
                 "textGenerationConfig": text_gen_config
             })
+
             # Invoke model 
 #            st.write(body)
-            response = bedrock_runtime.invoke_model(
+            bedrock_response = bedrock_runtime.invoke_model(
                 body=body, 
-                modelId=model_id, 
+                modelId=bedrock_model_id, 
                 accept=accept, 
                 contentType=content_type,
                 guardrailIdentifier=bedrock_guardrail_id,
                 guardrailVersion=bedrock_guardrail_version
             )
-            response_body = json.loads(response.get('body').read())
+            response_body = json.loads(bedrock_response.get('body').read())
             outputText = response_body.get('results')[0].get('outputText')
+            
             st.markdown(outputText)
 #            st.write(outputText)
 #            st.write(response_body)

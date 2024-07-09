@@ -10,12 +10,17 @@ import os
 from opensearchpy import OpenSearch, RequestsHttpConnection, AWSV4SignerAuth, helpers
 import json
 from urllib.parse import quote
+from datetime import datetime
 
+# Set search parameters below
 max_length_rag_text = 15000
-summary_hit_score_threshold = 0.9
 full_text_hit_score_threshold = 0.8
-summary_weight_over_full_text = 1.5
 use_summary = True
+summary_weight_over_full_text = 1.5
+summary_hit_score_threshold = 0.9
+use_date = True
+years_until_no_value = 20
+points_deduct_per_day_old = 1/(365 * years_until_no_value)
 
 # Parameters below are used for the optional markdown file s3 key to weblink conversion feature
 # If use_s3_key_to_weblink_conversion is set to true, markdown file references will be converted to weblinks based on other parameters here
@@ -25,10 +30,11 @@ weblink_prefix = "https://internal-site.us"
 s3_key_suffix_to_remove = ".md"
 weblink_suffix = ".html"
 
-def opensearch_query(query_text, model_id):
-    # Set the OpenSearch host, index name and model ID from envionment variables
+def opensearch_query(query_text, opensearch_model_id):
+    # Get the OpenSearch host, index name and model ID from envionment variables
     summary_index_name = os.environ['OPENSEARCH_SUMMARY_INDEX']
     full_text_index_name = os.environ['OPENSEARCH_FULL_TEXT_INDEX']
+    date_index_name = os.environ['OPENSEARCH_DATE_INDEX']
     host = os.environ['OPENSEARCH_SERVICE_ENDPOINT']
 
     # Get the current region
@@ -58,7 +64,7 @@ def opensearch_query(query_text, model_id):
                 "neural": {
                     "text_embedding": {
                     "query_text": query_text,
-                    "model_id": model_id,
+                    "model_id": opensearch_model_id,
                     "k": 30
                     }
                 }
@@ -72,7 +78,7 @@ def opensearch_query(query_text, model_id):
         print("Got",len(summary_response["hits"]["hits"]),"hits.")
     else:
         summary_response = []
-        
+
     # Build a list of keys of documents with the highest summary score for each document
     doc_list = []
     min_summary_hit_score = summary_hit_score_threshold * summary_response['hits']['max_score']
@@ -95,19 +101,53 @@ def opensearch_query(query_text, model_id):
             "neural": {
                 "text_embedding": {
                 "query_text": query_text,
-                "model_id": model_id,
+                "model_id": opensearch_model_id,
                 "k": 30
                 }
             }
         }
     }
+
     full_text_response = opensearch_client.search(index=full_text_index_name, 
                            body=query,
                            stored_fields=["text"])
 
+    # If use_date parameter is true, get the date of each document with a search hit and calculate its age in days
+    document_age_list = []
+    if use_date:
+        for full_text_hit in full_text_response["hits"]["hits"]:
+            if not any(d['document'] == full_text_hit["_source"]["document"] for d in document_age_list):
+                query={
+                    "query": {
+                        "match_phrase": {
+                            "document": full_text_hit["_source"]["document"]
+                        }
+                    }
+                }
+                date_response = opensearch_client.search(index=date_index_name, body=query)
+                document_date = date_response["hits"]["hits"][0]["_source"]["document_date"][:10]
+                days_old = (datetime.now() - datetime.strptime(document_date, "%Y-%m-%d")).days
+                document_age_list.append(
+                    {
+                        "document": full_text_hit["_source"]["document"],
+                        "date": document_date,
+                        "days_old": days_old
+                    }
+                )
+    
+    # If use_date parameter is true, deduct points on scores of each full text hit based on the age of the document and parameter points to deduct per day old 
+    if use_date:
+        for hit in full_text_response["hits"]["hits"]:
+            days_old = list(filter(lambda doc: doc['document'] == hit['_source']['document'], document_age_list))[0]["days_old"]
+            points_to_deduct = points_deduct_per_day_old * days_old
+            if hit["_score"] > points_to_deduct:
+                hit["_score"] = hit["_score"] - (points_deduct_per_day_old * days_old)
+            else:
+                hit["_score"] = 0
+    
     # Make a list of full text hits with associated summary document scores
     hit_sections = []
-    min_hit_score = full_text_hit_score_threshold * full_text_response['hits']['max_score']
+    min_hit_score = full_text_hit_score_threshold * min(full_text_response["hits"]["hits"], key=lambda x:x['_score'])["_score"]
 
     if use_summary:
         for hit in full_text_response["hits"]["hits"]:
@@ -123,7 +163,7 @@ def opensearch_query(query_text, model_id):
                 if i > 0 and hit["_score"] >= min_hit_score:
                     # If summary doc score exists for this full text hit then use that, else do not add this item
                     if hit['_source']['document'] in document_summary_high_scores:
-                        document_score = summary_weight_over_full_text * document_summary_high_scores[hit["_source"]["document"]]                       
+                        document_score = summary_weight_over_full_text * document_summary_high_scores[hit["_source"]["document"]]
                         hit_sections.append(
                                 {
                                     "document": hit["_source"]["document"],
@@ -135,7 +175,7 @@ def opensearch_query(query_text, model_id):
                             )
     else:
         for hit in full_text_response["hits"]["hits"]:
-            for i in range(hit["_source"]["section"] - 2, hit["_source"]["section"] + 3):
+            for i in range(hit["_source"]["section"] - 3, hit["_source"]["section"] + 4):
                 if "page" in hit["_source"]:
                     page = hit["_source"]["page"]
                 else:
@@ -167,9 +207,10 @@ def opensearch_query(query_text, model_id):
                 "document": i['document'],
                 "section": i['section']
             }
-        )    
-    deduplicated_list = {frozenset(item.items()) : item for item in sorted_list_without_scores}.values()
+        )
 
+    deduplicated_list = {frozenset(item.items()) : item for item in sorted_list_without_scores}.values()
+    
     # Retrieve the text of the each section in the hit list and concatenate into a single string as RAG context for the LLM
     rag_text = ""
     reference_list = []
@@ -223,7 +264,6 @@ def opensearch_query(query_text, model_id):
             if document.startswith(s3_key_prefix_to_remove):
                 document = document.replace(s3_key_prefix_to_remove, weblink_prefix, 1)
             if document.endswith(s3_key_suffix_to_remove):
-                #document = document.replace(s3_key_suffix_to_remove, weblink_suffix, 1)
                 document = document[:-len(s3_key_suffix_to_remove)] + weblink_suffix
 
         # If there is a page reference, then include it

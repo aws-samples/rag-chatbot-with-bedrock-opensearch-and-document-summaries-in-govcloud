@@ -41,4 +41,6 @@ def opensearch_model_id():
     model_query_json = json.dumps(model_query)
     
     response = ml_client.search_model(model_query)
-    return response['hits']['hits'][0]['_source']['model_id']
+    model_id = response['hits']['hits'][0]['_source']['model_id']
+    model_id.strip()
+    return model_id
