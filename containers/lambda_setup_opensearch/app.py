@@ -39,6 +39,7 @@ def handler(event, context):
         # Set names for the summary index, full text index, and pipeline
         summary_index_name = "chatbot-summary"
         full_text_index_name = "chatbot-full_text"
+        date_index_name = "chatbot-date-index"
         pipeline_id = "chatbot-nlp-pipeline"
         
         try:
@@ -188,6 +189,32 @@ def handler(event, context):
             print(response)
             print("Success creating index for full text in OpenSearch.")
         
+        # Create the index for the date
+        print("Creating the index for the date...")
+        try:
+            date_index = {
+              "settings": {
+                "index.knn": False
+              },
+              "mappings": {
+                "properties": {
+                  "document": {
+                    "type": "text"
+                  },
+                  "document_date": {
+                    "type": "date"
+                  }
+                }
+              }
+            }
+            response = opensearch_client.indices.create(index=date_index_name, body=date_index, ignore=400)
+        except:
+            print("Error creating index for date in OpenSearch.")
+            success_flag = False
+        else:
+            print(response)
+            print("Success creating index for date in OpenSearch.")
+        
         # Read back the lst of indices to confirm
         try:
             for index in opensearch_client.indices.get('*'):
@@ -203,5 +230,8 @@ def handler(event, context):
             cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
         else:
             cfnresponse.send(event, context, cfnresponse.FAILED, {})
+
+        matplotlib_temp_dir.cleanup()
+        huggingface_temp_dir.cleanup()
     
         return success_flag
