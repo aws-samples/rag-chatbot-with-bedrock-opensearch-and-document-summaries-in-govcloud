@@ -165,25 +165,25 @@ Several tunable parameters can be changed to best align with the use case:
 - Resource BedrockGuardrail FiltersConfig sets the strength for each type of content filter.  Additional information on the Bedrock Guardrails filter config is available in the AWS documentation at https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-bedrock-guardrail-contentfilterconfig.html
 - Parameter BedrockGuardrailsBlockMessage sets the message given to the user if Bedrock Guardrails blocks the input or output.
 
-/containers/streamlit/chat.py
+/containers/streamlit/rag_search.cfg
 
-- text_gen_config – This is used to set the configuration for Titan Text Express as the LLM used to present answers to the users based on the document context retrieved through OpenSearch.  Conservative temperature and topP values are set by default to stay close to the original content.  Additional information on these parameters is available in the AWS documentation at https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-titan-text.html
+- MaxLengthRagText – Sets the maximum length of context provided to the Amazon Bedrock foundation model from the document context retrieved through OpenSearch.  Any context exceeding this length is truncated.  Since context is sorted in reverse order of relevance score, the least relevant context is most likely to be truncated.
 
-/containers/streamlit/opensearch_retrieve_helper.py
+- FullTextHitScoreThreshold – Defines the percentile cut-off of full text hit scores that will be included in the result.  Any full text results with a relevance score less than this value times the highest result’s relevance score are excluded from the context.
 
-- use_summary – If set to True the relevance of all the text in a document from the document summary index is used as part of the overall relevance score for chunks.  If set to false the document summary index is not used, and only the full text relevance scores are used to determine the relevance of chunks.
+- UseSummary – If set to True the relevance of all the text in a document from the document summary index is used as part of the overall relevance score for chunks.  If set to false the document summary index is not used, and only the full text relevance scores are used to determine the relevance of chunks.
 
-- max_length_rag_text – Sets the maximum length of context provided to Titan Text Express from the document context retrieved through OpenSearch.  Any context exceeding this length is truncated.  Since context is sorted in reverse order of relevance score, the least relevant context is most likely to be truncated.
+- SummaryWeightOverFullText – Sets the weighting of document summary result vs. full text result relevance scores in calculating the overall relevance score of a particular chunk.  Higher values weight the document summary relevance more.  Lower values weight the full text summary relevance more.
 
-- summary_hit_score_threshold – Sets the percentage value used as a cut-off for relevance scores retrieved from the OpenSearch document summary index.  Any document summary results with a relevance score less than this value times the highest document summary result’s relevance score are excluded from the context.
+- SummaryHitScoreThreshold – Sets the percentage value used as a cut-off for relevance scores retrieved from the OpenSearch document summary index.  Any document summary results with a relevance score less than this value times the highest document summary result’s relevance score are excluded from the context.
 
-- full_text_hit_score_threshold – Sets the percentage value used as a cut-off for relevance scores retrieved from the OpenSearch full text index.  Any full text results with a relevance score less than this value times the highest result’s relevance score are excluded from the context.
+- UseDate - If set to True the age of each document will be used to adjust the relevance of full text hit scores downward as they age until the years_until_no_value age is reached, at which point the relevance score will become zero.
 
-- summary_weight_over_full_text – Sets the weighting of document summary result vs. full text result relevance scores in calculating the overall relevance score of a particular chunk.  Higher values weight the document summary relevance more.  Lower values weight the full text summary relevance more.
+- YearsUntilNoValue - Sets the number of years each document may age until it has no value as described above.
 
-- use_date - If set to True the age of each document will be used to adjust the relevance of full text hit scores downward as they age until the years_until_no_value age is reached, at which point the relevance score will become zero.
+- S3 Key to Weblink Conversion section - These parameters are used for the feature to convert .md file references in search results to corresponding web pages.  Refer to the section [Markdown S3 key to weblink reference feature](#Markdown S3 key to weblink reference feature) in this document for more information.
 
-- years_until_no_value - Sets the number of years each document may age until it has no value as described above.
+- Text Gen section – These parameters set the configuration for the Amazon Bedrock foundation model used to present answers to the users based on the document context retrieved through OpenSearch.  Conservative temperature and topP values are set by default to stay close to the original content.  Additional information on these parameters is available in the AWS documentation at https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-titan-text.html
 
 /containers/lambda_index/index_documents_helper.py
 
@@ -207,7 +207,7 @@ The screenshot below shows an example screenshot of the feature.
 
 In a case where markdown formatted source documents in S3 are also the source for a web site accessible to users, the references provided by the Streamlit user interface can optionally be configured to be clickable links to the target web pages.  This can help provide a better user experience in this use case by enabling one-click access to references.
 
-To use this feature, set the parameters below in the file /containers/streamlit/opensearch_retrieve_helper.py
+To use this feature, set the parameters below in the file /containers/streamlit/rag_search.cfg
 
 - use_s3_key_to_weblink_conversion – Sets the feature on or off based on the Boolean value True or False.  When set to True, the feature is enabled.
 
