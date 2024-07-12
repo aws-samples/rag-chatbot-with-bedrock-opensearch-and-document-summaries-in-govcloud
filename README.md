@@ -160,12 +160,12 @@ To deploy for development and testing, the following steps are required:
 
 Several tunable parameters can be changed to best align with the use case:
 
-/cloudformation/chatbot_demo_cfn.yml
+#### /cloudformation/chatbot_demo_cfn.yml
 
 - Resource BedrockGuardrail FiltersConfig sets the strength for each type of content filter.  Additional information on the Bedrock Guardrails filter config is available in the AWS documentation at https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-bedrock-guardrail-contentfilterconfig.html
 - Parameter BedrockGuardrailsBlockMessage sets the message given to the user if Bedrock Guardrails blocks the input or output.
 
-/containers/streamlit/rag_search.cfg
+#### /containers/streamlit/rag_search.cfg
 
 - MaxLengthRagText – Sets the maximum length of context provided to the Amazon Bedrock foundation model from the document context retrieved through OpenSearch.  Any context exceeding this length is truncated.  Since context is sorted in reverse order of relevance score, the least relevant context is most likely to be truncated.
 
@@ -185,11 +185,11 @@ Several tunable parameters can be changed to best align with the use case:
 
 - Text Gen section – These parameters set the configuration for the Amazon Bedrock foundation model used to present answers to the users based on the document context retrieved through OpenSearch.  Conservative temperature and topP values are set by default to stay close to the original content.  Additional information on these parameters is available in the AWS documentation at https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-titan-text.html
 
-/containers/lambda_index/index_documents_helper.py
+#### /containers/lambda_index/index_documents_helper.py
 
 - text_gen_config – This is used to set the configuration for Titan Text Express as the LLM used to summarize documents used in the document summary index.  Conservative temperature and topP values are set by default to stay close to the original content.  Additional information on these parameters is available in the AWS documentation at https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-titan-text.html
 
-/containers/lambda_index/app.py
+#### /containers/lambda_index/app.py
 
 - max_file_size – Sets the maximum file size that will be indexed into OpenSearch.  Use this to filter out documents that are excessively large.  Higher values may exceed the 15 minute maximum run time for Lambda.
 
