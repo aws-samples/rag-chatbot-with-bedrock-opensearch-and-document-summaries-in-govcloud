@@ -25,6 +25,8 @@ COPY chat.py /home/appuser/app
 COPY /pages/index_status.py /home/appuser/app/pages/index_status.py
 COPY get_opensearch_model_id.py /home/appuser/app
 COPY opensearch_retrieve_helper.py /home/appuser/app
+COPY rag_search_config_helper.py /home/appuser/app
+COPY rag_search.cfg /home/appuser/app
 
 RUN chown -R appuser /home/appuser/app
 

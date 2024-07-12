@@ -7,6 +7,7 @@ import json
 from opensearch_retrieve_helper import opensearch_query
 from get_opensearch_model_id import opensearch_model_id
 import logging
+from rag_search_config_helper import read_rag_search_config
 
 st.title("Question and Answer Bot")
 
@@ -19,6 +20,9 @@ opensearch_model_id = opensearch_model_id()
 session = boto3.session.Session()
 region_name = session.region_name
 
+# Get the values from rag_search.cfg
+config_dict = read_rag_search_config()
+
 # Create the Bedrock runtime
 bedrock_runtime = boto3.client(
     service_name='bedrock-runtime',
@@ -27,12 +31,11 @@ bedrock_runtime = boto3.client(
 
 # Set the text gen config and parameters for the LLM
 text_gen_config = {
-    "maxTokenCount": 350,
+    "maxTokenCount": config_dict['max_token_count'],
     "stopSequences": [], 
-    "temperature": 0,
-    "topP": 1
+    "temperature": config_dict['temperature'],
+    "topP": config_dict['top_p']
 }
-bedrock_model_id = 'amazon.titan-text-express-v1'
 accept = 'application/json' 
 content_type = 'application/json'
 
@@ -63,7 +66,7 @@ if prompt := st.chat_input("Enter your question"):
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
             # Query OpenSearch
-            rag_text, reference_text = opensearch_query(prompt, opensearch_model_id)
+            rag_text, reference_text = opensearch_query(prompt, opensearch_model_id, config_dict)
 
             # Prepare the request to the model
             prompt_template = '''Context - {context}\n\n\n\n
@@ -78,7 +81,7 @@ if prompt := st.chat_input("Enter your question"):
 #            st.write(body)
             bedrock_response = bedrock_runtime.invoke_model(
                 body=body, 
-                modelId=bedrock_model_id, 
+                modelId=config_dict['bedrock_model_id'], 
                 accept=accept, 
                 contentType=content_type,
                 guardrailIdentifier=bedrock_guardrail_id,

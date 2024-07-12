@@ -12,25 +12,7 @@ import json
 from urllib.parse import quote
 from datetime import datetime
 
-# Set search parameters below
-max_length_rag_text = 15000
-full_text_hit_score_threshold = 0.8
-use_summary = True
-summary_weight_over_full_text = 1.5
-summary_hit_score_threshold = 0.9
-use_date = True
-years_until_no_value = 20
-points_deduct_per_day_old = 1/(365 * years_until_no_value)
-
-# Parameters below are used for the optional markdown file s3 key to weblink conversion feature
-# If use_s3_key_to_weblink_conversion is set to true, markdown file references will be converted to weblinks based on other parameters here
-use_s3_key_to_weblink_conversion = True
-s3_key_prefix_to_remove = "website"
-weblink_prefix = "https://internal-site.us"
-s3_key_suffix_to_remove = ".md"
-weblink_suffix = ".html"
-
-def opensearch_query(query_text, opensearch_model_id):
+def opensearch_query(query_text, opensearch_model_id, config_dict):
     # Get the OpenSearch host, index name and model ID from envionment variables
     summary_index_name = os.environ['OPENSEARCH_SUMMARY_INDEX']
     full_text_index_name = os.environ['OPENSEARCH_FULL_TEXT_INDEX']
@@ -54,7 +36,7 @@ def opensearch_query(query_text, opensearch_model_id):
     )
 
     # Do a semantic search for the search term on the summary index
-    if use_summary:
+    if config_dict['use_summary']:
         query={
             "_source": {
                 "excludes": [ "text_embedding" ]
@@ -80,16 +62,17 @@ def opensearch_query(query_text, opensearch_model_id):
         summary_response = []
 
     # Build a list of keys of documents with the highest summary score for each document
-    doc_list = []
-    min_summary_hit_score = summary_hit_score_threshold * summary_response['hits']['max_score']
+    if config_dict['use_summary']:
+        doc_list = []
+        min_summary_hit_score = config_dict['summary_hit_score_threshold'] * summary_response['hits']['max_score']
 
-    for i in summary_response['hits']['hits']:
-        # Add this document if it's within the hit score threshold
-        if i['_score'] >= min_summary_hit_score:
-            doc_list.append({i['_source']['document']: i['_score']})
+        for i in summary_response['hits']['hits']:
+            # Add this document if it's within the hit score threshold
+            if i['_score'] >= min_summary_hit_score:
+                doc_list.append({i['_source']['document']: i['_score']})
 
-    all_keys = set().union(*doc_list)
-    document_summary_high_scores = {key: max(dic.get(key, float('-inf')) for dic in doc_list) for key in all_keys}
+        all_keys = set().union(*doc_list)
+        document_summary_high_scores = {key: max(dic.get(key, float('-inf')) for dic in doc_list) for key in all_keys}
 
     # Do a semantic search for the search term on the full text index
     query={
@@ -114,7 +97,7 @@ def opensearch_query(query_text, opensearch_model_id):
 
     # If use_date parameter is true, get the date of each document with a search hit and calculate its age in days
     document_age_list = []
-    if use_date:
+    if config_dict['use_date']:
         for full_text_hit in full_text_response["hits"]["hits"]:
             if not any(d['document'] == full_text_hit["_source"]["document"] for d in document_age_list):
                 query={
@@ -136,20 +119,20 @@ def opensearch_query(query_text, opensearch_model_id):
                 )
     
     # If use_date parameter is true, deduct points on scores of each full text hit based on the age of the document and parameter points to deduct per day old 
-    if use_date:
+    if config_dict['use_date']:
         for hit in full_text_response["hits"]["hits"]:
             days_old = list(filter(lambda doc: doc['document'] == hit['_source']['document'], document_age_list))[0]["days_old"]
-            points_to_deduct = points_deduct_per_day_old * days_old
+            points_to_deduct = config_dict['points_deduct_per_day_old'] * days_old
             if hit["_score"] > points_to_deduct:
-                hit["_score"] = hit["_score"] - (points_deduct_per_day_old * days_old)
+                hit["_score"] = hit["_score"] - (config_dict['points_deduct_per_day_old'] * days_old)
             else:
                 hit["_score"] = 0
     
     # Make a list of full text hits with associated summary document scores
     hit_sections = []
-    min_hit_score = full_text_hit_score_threshold * min(full_text_response["hits"]["hits"], key=lambda x:x['_score'])["_score"]
+    min_hit_score = config_dict['full_text_hit_score_threshold'] * min(full_text_response["hits"]["hits"], key=lambda x:x['_score'])["_score"]
 
-    if use_summary:
+    if config_dict['use_summary']:
         for hit in full_text_response["hits"]["hits"]:
             for i in range(hit["_source"]["section"] - 1, hit["_source"]["section"] + 2):
                 if "page" in hit["_source"]:
@@ -163,7 +146,7 @@ def opensearch_query(query_text, opensearch_model_id):
                 if i > 0 and hit["_score"] >= min_hit_score:
                     # If summary doc score exists for this full text hit then use that, else do not add this item
                     if hit['_source']['document'] in document_summary_high_scores:
-                        document_score = summary_weight_over_full_text * document_summary_high_scores[hit["_source"]["document"]]
+                        document_score = config_dict['summary_weight_over_full_text'] * document_summary_high_scores[hit["_source"]["document"]]
                         hit_sections.append(
                                 {
                                     "document": hit["_source"]["document"],
@@ -241,7 +224,7 @@ def opensearch_query(query_text, opensearch_model_id):
         )
 
         # Check to make sure there is a value and that adding this hit will not make the RAG text exceed the maximum length
-        if len(response2["hits"]["hits"]) > 0 and (len(rag_text) + len(response2["hits"]["hits"][0]["_source"]["text"]) < max_length_rag_text):
+        if len(response2["hits"]["hits"]) > 0 and (len(rag_text) + len(response2["hits"]["hits"][0]["_source"]["text"]) < config_dict['max_length_rag_text']):
             # Add the text from this hit to the RAG text
             rag_text += response2["hits"]["hits"][0]["_source"]["text"]
             # Add the reference
@@ -260,11 +243,11 @@ def opensearch_query(query_text, opensearch_model_id):
         # Default document reference is the S3 key
         document = item['document']
         # If use_s3_key_to_weblink_conversion is set then convert document to a weblink
-        if use_s3_key_to_weblink_conversion:
-            if document.startswith(s3_key_prefix_to_remove):
-                document = document.replace(s3_key_prefix_to_remove, weblink_prefix, 1)
-            if document.endswith(s3_key_suffix_to_remove):
-                document = document[:-len(s3_key_suffix_to_remove)] + weblink_suffix
+        if config_dict['use_s3_key_to_weblink_conversion']:
+            if document.startswith(config_dict['s3_key_prefix_to_remove']):
+                document = document.replace(config_dict['s3_key_prefix_to_remove'], config_dict['weblink_prefix'], 1)
+            if document.endswith(config_dict['s3_key_suffix_to_remove']):
+                document = document[:-len(config_dict['s3_key_suffix_to_remove'])] + weblink_suffix
 
         # If there is a page reference, then include it
         if item["page"] is not None:
