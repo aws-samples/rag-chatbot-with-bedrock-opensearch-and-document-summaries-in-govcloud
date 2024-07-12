@@ -181,7 +181,7 @@ Several tunable parameters can be changed to best align with the use case:
 
 - YearsUntilNoValue - Sets the number of years each document may age until it has no value as described above.
 
-- S3 Key to Weblink Conversion section - These parameters are used for the feature to convert .md file references in search results to corresponding web pages.  Refer to the section [Markdown S3 key to weblink reference feature](#Markdown S3 key to weblink reference feature) in this document for more information.
+- S3 Key to Weblink Conversion section - These parameters are used for the feature to convert .md file references in search results to corresponding web pages.  Refer to the section [Markdown S3 key to weblink reference feature](#Markdown-S3-key-to-weblink-reference-feature) in this document for more information.
 
 - Text Gen section – These parameters set the configuration for the Amazon Bedrock foundation model used to present answers to the users based on the document context retrieved through OpenSearch.  Conservative temperature and topP values are set by default to stay close to the original content.  Additional information on these parameters is available in the AWS documentation at https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-titan-text.html
 
