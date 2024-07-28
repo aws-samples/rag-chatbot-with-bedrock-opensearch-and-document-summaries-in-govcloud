@@ -199,9 +199,20 @@ Several tunable parameters can be changed to best align with the use case:
 
 The indexing status of the documents in the S3 bucket created by the CloudFormation stack can be viewed by selecting "Index status" in the side menu of the web user interface.  This shows a list of all the documents in the S3 bucket and the number of summary and full text index chunks in OpenSearch.  If zero chunks are shown then indexing has likely not yet begun for that document.  By scrolling right the date of each document as recorded in the date index can also be viewed. 
 
-The screenshot below shows an example screenshot of the feature.
+The screenshot below shows an example of the feature.
 
 ![image info](images/document_index_status_screenshot.png)
+
+## Bedrock invocations CloudWatch dashboard feature
+
+The CloudFormation stack can deploy a CloudWatch Logs group and a CloudWatch dashboard to provide observability on Bedrock invocations. 
+ This will show the number of requests made using Bedrock Guardrails, the number of blocked requests, and the number of Bedrock tokens consumed.  These resources will be deployed if the CloudFormation stack parameter CreateBedrockInvocationLogs is set to yes.
+
+When this option is enabled, the stack deploys a Lambda custom resource that will update the Bedrock invocation logging setting for the account with a new IAM role and CloudWatch Logs group.  This will override any existing Bedrock invocation logging setting.  For this reason, the default value for the CreateBedrockInvocationLogs is no.
+
+The screenshot below shows an example of the CloudWatch dashboard.
+
+![image info](images/bedrock_invocations_dashboard_screenshot.png)
 
 ## Markdown S3 key to weblink reference feature
 
