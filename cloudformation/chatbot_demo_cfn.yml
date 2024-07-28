@@ -76,11 +76,19 @@ Parameters:
     Description: Message given to user for prompts or responses blocked by Bedrcok Guardrail
     Type: String
     Default: "Sorry, I cannot answer this question."
+  CreateBedrockInvocationLogs:
+    Description: Select yes/no to include Bedrock invocation logging in the stack
+    Type: String
+    Default: "no"
+    AllowedValues:
+      - "yes"
+      - "no"
 
 Conditions:
   IncludeLambda: !Equals [!Ref "CreateLambda", "yes"]
   IncludeStreamlitEcs: !Equals [!Ref "CreateStreamlitEcs", "yes"]
   IncludeSageMakerStudioSupport: !Equals [!Ref "SageMakerStudioSupport", "yes"]
+  IncludeBedrockInvocationLogs: !Equals [!Ref "CreateBedrockInvocationLogs", "yes"]
 
 Resources:
   VPC:
@@ -1617,6 +1625,8 @@ Resources:
               Value: chatbot-full_text
             - Name: OPENSEARCH_SUMMARY_INDEX
               Value: chatbot-summary
+            - Name: OPENSEARCH_DATE_INDEX
+              Value: chatbot-date-index
 
   EcsTaskPolicy:
     Type: AWS::IAM::ManagedPolicy
@@ -1739,6 +1749,369 @@ Resources:
     Properties:
       Description: Guardrail content filter version
       GuardrailIdentifier: !GetAtt BedrockGuardrail.GuardrailId
+
+  BedrockInvocationLogGroup: 
+    Type: AWS::Logs::LogGroup
+    Condition: IncludeBedrockInvocationLogs
+    Properties: 
+      LogGroupName: !Sub aws-${NameTag}-bedrock-invocation
+      LogGroupClass: STANDARD
+      RetentionInDays: 14
+
+  BedrockInvocationLogMetricFilterGuardrailDidNotIntervene:
+    Type: AWS::Logs::MetricFilter
+    Condition: IncludeBedrockInvocationLogs
+    Properties:
+      FilterName: 'Guardrail_did_not_Intervene'
+      FilterPattern: '{$.output.outputBodyJson.amazon-bedrock-guardrailAction="NONE"}'
+      LogGroupName: !Ref BedrockInvocationLogGroup
+      MetricTransformations: 
+        - 
+          MetricValue: "1"
+          MetricNamespace: "/aws/Bedrock/Guardrails"
+          MetricName: "Guardrail_did_not_Intervene"
+          Unit: Count
+
+  BedrockInvocationLogMetricFilterGuardrailIntervened:
+    Type: AWS::Logs::MetricFilter
+    Condition: IncludeBedrockInvocationLogs
+    Properties:
+      FilterName: 'Guardrail_Intervened'
+      FilterPattern: '{$.output.outputBodyJson.amazon-bedrock-guardrailAction="INTERVENED"}'
+      LogGroupName: !Ref BedrockInvocationLogGroup
+      MetricTransformations: 
+        - 
+          MetricValue: "1"
+          MetricNamespace: "/aws/Bedrock/Guardrails"
+          MetricName: "Guardrail_Intervened"
+          Unit: Count
+
+  BedrockInvocationLogMetricFilterInvocationsWithGuardrails:
+    Type: AWS::Logs::MetricFilter
+    Condition: IncludeBedrockInvocationLogs
+    Properties:
+      FilterName: 'Invocations_with_Guardrails'
+      FilterPattern: '%amazon-bedrock-trace%'
+      LogGroupName: !Ref BedrockInvocationLogGroup
+      MetricTransformations: 
+        - 
+          MetricValue: "1"
+          MetricNamespace: "/aws/Bedrock/Guardrails"
+          MetricName: "Invocations_with_Guardrails"
+          Unit: Count
+
+  BedrockInvocationLogMetricFilterSexualFilterBlocked:
+    Type: AWS::Logs::MetricFilter
+    Condition: IncludeBedrockInvocationLogs
+    Properties:
+      FilterName: "Prompt_Sexual_Filter_Blocked"
+      FilterPattern: !Sub 
+        - '{($.output.outputBodyJson.amazon-bedrock-trace.guardrail.input.${GuardrailId}.contentPolicy.filters[*].action="BLOCKED") && ($.output.outputBodyJson.amazon-bedrock-trace.guardrail.input.${GuardrailId}.contentPolicy.filters[*].type="SEXUAL")}'
+        - GuardrailId: !GetAtt BedrockGuardrail.GuardrailId
+      LogGroupName: !Ref BedrockInvocationLogGroup
+      MetricTransformations: 
+        - 
+          MetricValue: "1"
+          MetricNamespace: "/aws/Bedrock/Guardrails"
+          MetricName: "Prompt_Sexual_Filter_Blocked"
+          Unit: Count
+
+  BedrockInvocationLogMetricFilterViolenceFilterBlocked:
+    Type: AWS::Logs::MetricFilter
+    Condition: IncludeBedrockInvocationLogs
+    Properties:
+      FilterName: "Prompt_Violence_Filter_Blocked"
+      FilterPattern: !Sub 
+        - '{($.output.outputBodyJson.amazon-bedrock-trace.guardrail.input.${GuardrailId}.contentPolicy.filters[*].action="BLOCKED") && ($.output.outputBodyJson.amazon-bedrock-trace.guardrail.input.${GuardrailId}.contentPolicy.filters[*].type="VIOLENCE")}'
+        - GuardrailId: !GetAtt BedrockGuardrail.GuardrailId
+      LogGroupName: !Ref BedrockInvocationLogGroup
+      MetricTransformations: 
+        - 
+          MetricValue: "1"
+          MetricNamespace: "/aws/Bedrock/Guardrails"
+          MetricName: "Prompt_Violence_Filter_Blocked"
+          Unit: Count
+
+  BedrockInvocationLogMetricFilterHateFilterBlocked:
+    Type: AWS::Logs::MetricFilter
+    Condition: IncludeBedrockInvocationLogs
+    Properties:
+      FilterName: "Prompt_Hate_Filter_Blocked"
+      FilterPattern: !Sub 
+        - '{($.output.outputBodyJson.amazon-bedrock-trace.guardrail.input.${GuardrailId}.contentPolicy.filters[*].action="BLOCKED") && ($.output.outputBodyJson.amazon-bedrock-trace.guardrail.input.${GuardrailId}.contentPolicy.filters[*].type="HATE")}'
+        - GuardrailId: !GetAtt BedrockGuardrail.GuardrailId
+      LogGroupName: !Ref BedrockInvocationLogGroup
+      MetricTransformations: 
+        - 
+          MetricValue: "1"
+          MetricNamespace: "/aws/Bedrock/Guardrails"
+          MetricName: "Prompt_Hate_Filter_Blocked"
+          Unit: Count
+
+  BedrockInvocationLogMetricFilterInsultsFilterBlocked:
+    Type: AWS::Logs::MetricFilter
+    Condition: IncludeBedrockInvocationLogs
+    Properties:
+      FilterName: "Prompt_Insults_Filter_Blocked"
+      FilterPattern: !Sub 
+        - '{($.output.outputBodyJson.amazon-bedrock-trace.guardrail.input.${GuardrailId}.contentPolicy.filters[*].action="BLOCKED") && ($.output.outputBodyJson.amazon-bedrock-trace.guardrail.input.${GuardrailId}.contentPolicy.filters[*].type="INSULTS")}'
+        - GuardrailId: !GetAtt BedrockGuardrail.GuardrailId
+      LogGroupName: !Ref BedrockInvocationLogGroup
+      MetricTransformations: 
+        - 
+          MetricValue: "1"
+          MetricNamespace: "/aws/Bedrock/Guardrails"
+          MetricName: "Prompt_Insults_Filter_Blocked"
+          Unit: Count
+
+  BedrockInvocationLogMetricFilterMisconductFilterBlocked:
+    Type: AWS::Logs::MetricFilter
+    Condition: IncludeBedrockInvocationLogs
+    Properties:
+      FilterName: "Prompt_Misconduct_Filter_Blocked"
+      FilterPattern: !Sub 
+        - '{($.output.outputBodyJson.amazon-bedrock-trace.guardrail.input.${GuardrailId}.contentPolicy.filters[*].action="BLOCKED") && ($.output.outputBodyJson.amazon-bedrock-trace.guardrail.input.${GuardrailId}.contentPolicy.filters[*].type="MISCONDUCT")}'
+        - GuardrailId: !GetAtt BedrockGuardrail.GuardrailId
+      LogGroupName: !Ref BedrockInvocationLogGroup
+      MetricTransformations: 
+        - 
+          MetricValue: "1"
+          MetricNamespace: "/aws/Bedrock/Guardrails"
+          MetricName: "Prompt_Misconduct_Filter_Blocked"
+          Unit: Count
+
+  BedrockInvocationLogMetricFilterInputTokens:
+    Type: AWS::Logs::MetricFilter
+    Condition: IncludeBedrockInvocationLogs
+    Properties:
+      FilterName: "Input_Tokens"
+      FilterPattern: '{$.schemaType="ModelInvocationLog"}'
+      LogGroupName: !Ref BedrockInvocationLogGroup
+      MetricTransformations: 
+        - 
+          MetricValue: '$.input.inputTokenCount'
+          MetricNamespace: "/aws/Bedrock/Guardrails"
+          MetricName: "Input_Tokens"
+
+  BedrockInvocationLogMetricFilterOutputTokens:
+    Type: AWS::Logs::MetricFilter
+    Condition: IncludeBedrockInvocationLogs
+    Properties:
+      FilterName: "Output_Tokens"
+      FilterPattern: '{$.schemaType="ModelInvocationLog"}'
+      LogGroupName: !Ref BedrockInvocationLogGroup
+      MetricTransformations: 
+        - 
+          MetricValue: '$.output.outputTokenCount'
+          MetricNamespace: "/aws/Bedrock/Guardrails"
+          MetricName: "Output_Tokens"
+
+  BedrockInvocationLoggingRole:
+    Type: AWS::IAM::Role
+    Condition: IncludeBedrockInvocationLogs
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: bedrock.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+              ArnLike:
+                aws:SourceArn: !Sub 'arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:*'
+      Path: /
+      RoleName: !Sub ${NameTag}-bedrock-invocation-logging-role
+      ManagedPolicyArns:
+        - !Ref BedrockInvocationLoggingPolicy
+
+  BedrockInvocationLoggingPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Condition: IncludeBedrockInvocationLogs
+    Properties:
+      Description: Permissions used by Bedrock invocation logging
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: CloudWatchLogsAccess
+            Effect: Allow
+            Action:
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${BedrockInvocationLogGroup}:log-stream:aws/bedrock/modelinvocations'
+
+  LambdaEnableBedrockInvocationLogging:
+    Type: AWS::Lambda::Function
+    Condition: IncludeBedrockInvocationLogs
+    Properties:
+      FunctionName: !Sub '${NameTag}-lambda-enable-bedrock-invocation-logging'
+      Runtime: python3.11
+      Timeout: 10
+      Role: !GetAtt LambdaEnableBedrockInvocationLoggingRole.Arn
+      Handler: index.handler
+      Code:
+        ZipFile: !Sub |
+          import os
+          import sys
+          import subprocess
+          import cfnresponse
+
+          # pip install package to /tmp/ and add to path
+          subprocess.call('pip install boto3 -t /tmp/ --no-cache-dir'.split(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+          sys.path.insert(1, '/tmp/')
+          import boto3
+          from botocore.exceptions import ClientError
+
+          def handler(event, context):
+              # If the event RequestType is Delete or Update then there is nothing to do; return success
+              if event['RequestType'] == 'Delete':
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+                  return True
+              else:
+                  print("boto3 version is", boto3.__version__)
+                  try:
+                      session = boto3.session.Session()
+                      region = session.region_name
+                      bedrock = boto3.client("bedrock",region_name=region)
+                      response = bedrock.put_model_invocation_logging_configuration(
+                          loggingConfig={
+                              'cloudWatchConfig': {
+                                  'logGroupName': '${BedrockInvocationLogGroup}',
+                                  'roleArn': '${BedrockInvocationLoggingRole.Arn}'
+                              },
+                              'textDataDeliveryEnabled': True,
+                              'imageDataDeliveryEnabled': False,
+                              'embeddingDataDeliveryEnabled': False
+                          }
+                      )
+                  except:
+                      print("Error getting region.")
+                      cfnresponse.send(event, context, cfnresponse.FAILED, {})
+                  else:
+                      print(response)
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+              return True
+      Description: Enable Bedrock invocation logging
+      TracingConfig:
+        Mode: Active
+
+  TriggerLambdaEnableBedrockInvocationLoggingCustomResource:
+    Type: Custom::TriggerLambda
+    Condition: IncludeBedrockInvocationLogs
+    Version: '1.0'
+    Properties:
+      ServiceToken: !GetAtt LambdaEnableBedrockInvocationLogging.Arn
+
+  LambdaEnableBedrockInvocationLoggingRole:
+    Type: AWS::IAM::Role
+    Condition: IncludeBedrockInvocationLogs
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      RoleName: !Sub ${NameTag}-lambda-enable-bedrock-invocation-logging-role
+      ManagedPolicyArns:
+        - !Ref LambdaEnableBedrockInvocationLoggingPolicy
+
+  LambdaEnableBedrockInvocationLoggingPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Condition: IncludeBedrockInvocationLogs
+    Properties:
+      Description: Permissions used by Lambda Enable Bedrock invocation logging function
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: CloudWatchLogsAccess
+            Effect: Allow
+            Action:
+              - 'logs:CreateLogGroup'
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Resource: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${NameTag}-lambda-enable-bedrock-invocation-logging:*
+          - Sid: BedrockLogAccess
+            Effect: Allow
+            Action:
+              - bedrock:DeleteModelInvocationLoggingConfiguration
+              - bedrock:PutModelInvocationLoggingConfiguration
+            Resource: '*'
+          - Sid: PassRole
+            Effect: Allow
+            Action:
+              - iam:PassRole
+            Resource: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${NameTag}-bedrock-invocation-logging-role
+
+  BedrockInvocationCloudWatchDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Condition: IncludeBedrockInvocationLogs
+    Properties:
+      DashboardBody: !Sub |
+        {
+            "widgets": [
+                {
+                    "type": "metric",
+                    "x": 0,
+                    "y": 0,
+                    "width": 6,
+                    "height": 6,
+                    "properties": {
+                        "metrics": [
+                            [ "/aws/Bedrock/Guardrails", "Guardrail_did_not_Intervene", { "region": "${AWS::Region}" } ],
+                            [ ".", "Guardrail_Intervened", { "region": "${AWS::Region}" } ]
+                        ],
+                        "view": "pie",
+                        "region": "${AWS::Region}",
+                        "period": 2592000,
+                        "stat": "Sum",
+                        "title": "Guardrails Intervened vs. Not Intervened"
+                    }
+                },
+                {
+                    "type": "metric",
+                    "x": 0,
+                    "y": 6,
+                    "width": 18,
+                    "height": 6,
+                    "properties": {
+                        "view": "timeSeries",
+                        "stacked": false,
+                        "metrics": [
+                            [ "/aws/Bedrock/Guardrails", "Input_Tokens", { "region": "${AWS::Region}" } ],
+                            [ ".", "Output_Tokens", { "region": "${AWS::Region}" } ]
+                        ],
+                        "region": "${AWS::Region}",
+                        "period": 300
+                    }
+                },
+                {
+                    "type": "metric",
+                    "x": 6,
+                    "y": 0,
+                    "width": 12,
+                    "height": 6,
+                    "properties": {
+                        "metrics": [
+                            [ "/aws/Bedrock/Guardrails", "Prompt_Hate_Filter_Blocked", { "region": "${AWS::Region}" } ],
+                            [ ".", "Prompt_Insults_Filter_Blocked", { "region": "${AWS::Region}" } ],
+                            [ ".", "Prompt_Misconduct_Filter_Blocked", { "region": "${AWS::Region}" } ],
+                            [ ".", "Prompt_Violence_Filter_Blocked", { "region": "${AWS::Region}" } ]
+                        ],
+                        "view": "bar",
+                        "region": "${AWS::Region}",
+                        "period": 604800,
+                        "stat": "Sum",
+                        "title": "Guardrails Filter Actions by Category"
+                    }
+                }
+            ]
+        }
+      DashboardName: !Sub ${NameTag}-Bedrock-Invocations
 
 Outputs:
   Region:
