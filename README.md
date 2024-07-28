@@ -247,7 +247,7 @@ To clean up, perform the following steps:
 
 This repository is intended for use in the AWS us-gov-west-1 region.
 
-The code in this repository has also worked in the us-east-1 region.  Regions and partitions are referred by parameters in code to help enable region portability.  However, testing in regions outside us-gov-west-1 is limited.
+The code in this repository has also worked in the us-east-1 region.  Regions and partitions are referred by parameters in code to help enable region portability.  However, testing in regions outside us-gov-west-1 is limited.  When deploying in development and test mode use SageMaker Studio Classic.
 
 ## Contributors
 
