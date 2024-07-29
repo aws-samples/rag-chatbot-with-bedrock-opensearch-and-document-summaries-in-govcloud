@@ -214,7 +214,7 @@ The screenshot below shows an example of the CloudWatch dashboard.
 
 ![image info](images/bedrock_invocations_dashboard_screenshot.png)
 
-By enabling Bedrock invocation logging, you will be able to see the details of all Bedrock requests, including the content of the request and the response.  These are available in the log group created by the CloudFormation stack.  This can be found by searching CloudWatch log groups for "bedrock-invocation".  For Q&A requests, the Bedrock Guardrail status is also included in the logs. Summarization requests made to Bedrock during document ingestion are not made using a Guardrail. 
+By enabling Bedrock invocation logging, you will be able to see the details of all Bedrock requests, including the content of the request and the response.  These are available in the log group created by the CloudFormation stack which can be found by searching CloudWatch log groups for "bedrock-invocation".  For Q&A requests, the Bedrock Guardrail status is also included in the logs. Summarization requests made to Bedrock during document ingestion do not include Guardrails actions as these are made without a Guardrail. 
 
 ## Markdown S3 key to weblink reference feature
 
