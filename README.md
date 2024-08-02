@@ -98,13 +98,14 @@ The document ingestion pipeline uses S3 event notifications to Simple Queue Serv
 The web front end runs in a container on ECS Fargate behind an Application Load Balancer (ALB).
 
 To deploy production-like, the following steps are required:
-1.	Build the required container images into Elastic Container Registry (ECR).  AWS CodeBuild may be used for the container build, and buildspec files are provided in the repository.
+1.	Build the required container images into Elastic Container Registry (ECR).  AWS CodeBuild may be used for the container build. 
+ Buildspec files are provided in the repository.
 
-    a. The Streamlit user interface container is based on files in the code repository folder /containers/streamlit
+    a. The Streamlit user interface container is built using files in the code repository folder ```/containers/streamlit```
 
-    b. The Lambda function container for OpenSearch setup is based on files in the code repository folder /containers/lambda_setup_opensearch
+    b. The Lambda function container for OpenSearch setup is built using files in the code repository folder /containers/lambda_setup_opensearch
 
-    c. The  Lambda function container for OpenSearch indexing is based on files in the code repository folder /containers/lambda_index
+    c. The  Lambda function container for OpenSearch indexing is built using files in the code repository folder /containers/lambda_index
 
 2.	Create the CloudFormation stack located in the /cloudformation folder in the code repository.
 
@@ -112,13 +113,9 @@ To deploy production-like, the following steps are required:
 
     b. Set the CloudFormation stack parameters for the ECR repository names to point to the container images built in the step above: LambdaIndexEcrRepositoryName, LambdaOpenSearchSetupEcrRepositoryName, StreamlitImageEcrRepositoryName
 
-    c. Set the following CloudFormation stack parameters to "yes":
-    
-    - CreateLambda – This will build the Lambda functions that perform one-time setup of OpenSearch and handle S3 events to keep the OpenSearch indices in sync with files in S3.
+    c. Set the CloudFormation stack parameter DeploymentMode to "Prod"
 
-    - CreateStreamlitECS – This will build the ECS resources, load balancer and target group used by the Streamlit user interface.
-
-3.	Provide document base files – After the stack is complete, drop sample document base files into the S3 bucket created by the stack and wait several minutes for file indexing in OpenSearch to complete.  You can monitor the progress of indexing by monitoring the CloudWatch logs for the lambda function chatbot_prod_lambda_index.
+3.	Upload document base files to S3 – After the stack is complete, drop sample document base files into the S3 bucket created by the stack and wait several minutes for file indexing in OpenSearch to complete.  You can monitor the progress of indexing by monitoring the CloudWatch logs for the lambda function chatbot_prod_lambda_index.
 
 4.	Locate the URL of the ALB for the ECS service in the ECS console.  Open the URL in a browser on port 8501 to open the web user interface and ask questions.
 
@@ -133,32 +130,25 @@ To deploy for development and testing, the following steps are required:
 
     a. Name the stack chatbot-demo.
 
-    b. Set the following CloudFormation stack parameter to "yes":
+    b. Set the CloudFormation stack parameter DeploymentMode to "DevTest"
         
-    - SageMakerStudioSupport – This will build the VPC endpoints, NAT gateway and IAM permissions needed to enable the demo to run in a SageMaker Studio environment.
-  
-    c. Set the following CloudFormation stack parameters to "no":
-
-    - CreateStreamlitEcs - This will skip building the ECS web front end.
-    - CreateLambda - This will skip building the Lambda functions that set up the OpenSearch indices and respond to S3 events.  Note that if the CreateLambda parameter is set to "yes" as described in the Production-like deployment, the deployed Lambda functions will take precedence over the SageMaker Studio notebooks that set up the OpenSearch model and manage the indexing of documents.  These notebooks should not be run if the Lambda functions have been deployed, otherwise conflicts from duplicate processing will occur.
-
     d. It will take 20-30 minutes for the stack to complete.
 
 3.	Create the SageMaker domain – After the stack is complete, run the script create_sagemaker_domain.sh in the sagemaker_studio folder of the code repository to create a SageMaker domain.  CloudShell in the AWS console is a useful tool to run such a command.
 
 4.	Create a user in the SageMaker domain – After the SageMaker domain is created, use the console to create a user in the domain and launch SageMaker Studio.
 
-5.	Copy the SageMaker files from the code repository to Studio – After Studio launches, copy the files from the /sagemaker_studio/notebooks, sagemaker_studio/streamlit, /containers/streamlit folders of the code repository and file /containers/lambda-index/index_documents_helper.py into a single new folder in Studio.
+5.	Copy the SageMaker files from the code repository to Studio – After Studio launches, copy the files from the /sagemaker_studio/notebooks folder of the code repository into the root folder in SageMaker Studio.
 
 6.	Provide document base files – Drop sample document base files into the S3 bucket created by the stack.
 
-7.	Run notebooks in Studio – If the CreateLambda CloudFormation parameter was set to "no" as described above, run notebook 1b, otherwise run notebook 1a to setup.  Then run notebooks 2 and 3 to follow the process of populating OpenSearch indices and performing semantic searches.  Select default SageMaker environment settings when opening notebooks.  Notebook 9 may optionally be run to delete the indicies in OpenSearch.
+7.	Run notebooks in Studio – Run notebooks 1 and 2 to create and populate the OpenSearch indices.  Optionally, run notebook 3 to present questions and get responses.  Follow the instructions and prerequisites in each notebook.
 
-8.	Ask questions in the user interface – To use the user interface within the Studio environment in single-user mode, run the scripts setup.sh and run.sh.  Click the link provided by the run.sh script to open a browser tab with the user interface and ask questions.
+8.	Ask questions in the user interface – To use the user interface within the Studio environment in single-user mode, follow the instructions in notebook 4.
 
 ## Tunable parameters
 
-Several tunable parameters can be changed to best align with the use case:
+Several tunable parameters can be changed to best align with the use case.  Default values will work in most cases.
 
 #### /cloudformation/chatbot_demo_cfn.yml
 
