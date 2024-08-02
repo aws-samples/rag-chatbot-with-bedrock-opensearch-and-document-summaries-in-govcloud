@@ -187,7 +187,9 @@ Several tunable parameters can be changed to best align with the use case.  Defa
 
 ## Document index status feature
 
-The indexing status of the documents in the S3 bucket created by the CloudFormation stack can be viewed by selecting "Index status" in the side menu of the web user interface.  This shows a list of all the documents in the S3 bucket and the number of summary and full text index chunks in OpenSearch.  If zero chunks are shown then indexing has likely not yet begun for that document.  The date of each document as recorded in the date index can also be viewed by scrolling to the right. 
+The indexing status of the documents in the S3 bucket created by the CloudFormation stack can be viewed by selecting "Index status" in the side menu of the web user interface.
+
+This shows a list of all the documents in the S3 bucket and the number of summary and full text index chunks in OpenSearch.  If zero chunks are shown then indexing has likely not yet begun for that document.  The date of each document as recorded in the date index can also be viewed by scrolling to the right. 
 
 The screenshot below shows an example of the feature.
 
@@ -196,7 +198,7 @@ The screenshot below shows an example of the feature.
 ## Bedrock invocations CloudWatch dashboard feature
 
 The CloudFormation stack can deploy a CloudWatch Logs group and a CloudWatch dashboard to provide observability on Bedrock invocations. 
- This will show the number of requests made using Bedrock Guardrails, the number of blocked requests, and the number of Bedrock tokens consumed.  These resources will be deployed if the CloudFormation stack parameter CreateBedrockInvocationLogs is set to yes.
+ This will show the number of requests made using Bedrock Guardrails, the number of blocked requests, and the number of Bedrock tokens consumed.  These resources will be deployed if the CloudFormation stack parameter ```CreateBedrockInvocationLogs``` is set to "yes".
 
 When this option is enabled, the stack deploys a Lambda custom resource that will update the Bedrock invocation logging setting for the account with a new IAM role and CloudWatch Logs group.  This will overwrite any existing Bedrock invocation logging setting in the account.  For this reason, the default value for the ```CreateBedrockInvocationLogs``` parameter is "no".  Set the parameter to "yes" if you are sure you will not interfere with existing Bedrock invocation logging in the account.
 
