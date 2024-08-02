@@ -210,7 +210,7 @@ By enabling Bedrock invocation logging, you will be able to see the details of a
 
 ## Markdown S3 key to weblink reference feature
 
-This feature is for special use cases where markdown formatted source documents in S3 are also the source for a web site accessible to users.  By using this feature, the references provided by the Streamlit user interface can be configured as clickable links to the target web pages.  This can help provide a better user experience by enabling one-click access to references.
+This feature is for special use cases where markdown formatted source documents in S3 are also the source for a web site accessible to users.  By using this feature, the references provided by the Streamlit user interface can be configured as clickable links to the target web pages.  This can help provide a better user experience by enabling one-click access to web page references.
 
 To use this feature, set the parameters below in the file ```/containers/streamlit/rag_search.cfg```
 
