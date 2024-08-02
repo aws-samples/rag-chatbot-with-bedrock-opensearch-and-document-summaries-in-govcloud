@@ -128,11 +128,11 @@ Container build is not required for the development and testing deployment.
 ### To deploy for development and testing, the following steps are required:
 **1.	Create the CloudFormation stack located in the ```/cloudformation``` folder in the code repository.**
 
-    a. Name the stack ```chatbot-demo```.
+ - Name the stack ```chatbot-demo```.
 
-    b. Set the CloudFormation stack parameter ```DeploymentMode``` to "DevTest"
+ - Set the CloudFormation stack parameter ```DeploymentMode``` to "DevTest"
         
-    d. It will take 20-30 minutes for the stack to complete.
+ - It will take 20-30 minutes for the stack to complete.
 
 **3.	Create the SageMaker domain** – After the stack is complete, run the script ```create_sagemaker_domain.sh``` in the ```/sagemaker_studio``` folder of the code repository to create a SageMaker domain.  CloudShell in the AWS console is a useful tool to run such a command.
 
