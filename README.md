@@ -101,19 +101,19 @@ The web front end runs in a container on ECS Fargate behind an Application Load 
 **1.	Build the required container images into Elastic Container Registry (ECR).**  AWS CodeBuild may be used for the container build. 
  Buildspec files are provided in the repository.
 
-    a. The Streamlit user interface container is built using files in the code repository folder ```/containers/streamlit```
+    - The Streamlit user interface container is built using files in the code repository folder ```/containers/streamlit```
 
-    b. The Lambda function container for OpenSearch setup is built using files in the code repository folder ```/containers/lambda_setup_opensearch```
+    - The Lambda function container for OpenSearch setup is built using files in the code repository folder ```/containers/lambda_setup_opensearch```
 
-    c. The  Lambda function container for OpenSearch indexing is built using files in the code repository folder ```/containers/lambda_index```
+    - The  Lambda function container for OpenSearch indexing is built using files in the code repository folder ```/containers/lambda_index```
 
 **2.	Create the CloudFormation stack located in the ```/cloudformation``` folder in the code repository.**
 
-    a. Name the stack ```chatbot-demo```.
+    - Name the stack ```chatbot-demo```.
 
-    b. Set the CloudFormation stack parameters for the ECR repository names to point to the container images built in the step above: ```LambdaIndexEcrRepositoryName```, ```LambdaOpenSearchSetupEcrRepositoryName```, ```StreamlitImageEcrRepositoryName```
+    - Set the CloudFormation stack parameters for the ECR repository names to point to the container images built in the step above: ```LambdaIndexEcrRepositoryName```, ```LambdaOpenSearchSetupEcrRepositoryName```, ```StreamlitImageEcrRepositoryName```
 
-    c. Set the CloudFormation stack parameter ```DeploymentMode``` to "Prod"
+    - Set the CloudFormation stack parameter ```DeploymentMode``` to "Prod"
 
 **3.	Upload document base files to S3** – After the stack is complete, drop sample document base files into the S3 bucket created by the stack and wait several minutes for file indexing in OpenSearch to complete.  You can monitor the progress of indexing by monitoring the CloudWatch logs for the lambda function ```chatbot_prod_lambda_index```.
 
