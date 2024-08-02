@@ -37,7 +37,7 @@ The diagram below illustrates the high-level architecture.
 
 ![image info](images/arch_overview.png)
 
-1. The Hugging Face distilroberta-v1 plugin is installed in OpenSearch by a Lambda function or a SageMaker Studio notebook
+1. The Hugging Face ```distilroberta-v1``` plugin is installed in OpenSearch by a Lambda function or a SageMaker Studio notebook
 2. New documents in the S3 bucket are summarized using Amazon Bedrock and indexed into OpenSearch by a Lambda function or a SageMaker Studio notebook
 3. New documents in the S3 bucket have their full text indexed into OpenSearch by a Lambda function or a SageMaker Studio notebook
 4. New documents in the S3 bucket have their date indexed into OpenSearch by a Lambda function or a SageMaker Studio notebook
@@ -51,7 +51,7 @@ This chatbot uses the semantic search capability of Amazon OpenSearch to find re
 
 ## Document summary Retrieval Augmented Generation (RAG) technique
 
-The search component includes a document summary feature as an advanced Retrieval Augmented Generation (RAG) technique.  This can improve the relevance of answers by comparing the question posed by the user to summaries of the documents in the document base, and ranking the results of full-text search from those documents with relevant summaries higher.  This approach can help reduce occurrences of search results from mentions in less relevant or authoritative documents.  The feature can be enabled or disabled by setting the parameter use_summary in the file /containers/streamlit/opensearch_retrieve_helper.py.  More details are in the Tunable parameters section below.  The diagram below illustrates how the document summary process can improve search results.
+The search component includes a document summary feature as an advanced Retrieval Augmented Generation (RAG) technique.  This can improve the relevance of answers by comparing the question posed by the user to summaries of the documents in the document base, and ranking the results of full-text search from those documents with relevant summaries higher.  This approach can help reduce occurrences of search results from mentions in less relevant or authoritative documents.  The feature can be enabled or disabled by setting the parameter ```use_summary``` in the file ```/containers/streamlit/opensearch_retrieve_helper.py```.  More details are in the Tunable parameters section below.  The diagram below illustrates how the document summary process can improve search results.
 
 ![image info](images/summary_rag_approach_overview.png)
 
@@ -61,9 +61,9 @@ For many use cases, documents that are newer are more relevant, since older docu
 
 To enable this technique, a date must be assigned to each document as it is ingested.  For this demonstration, dates for .pdf and .docx files are set according to each document’s metadata creation date, and for .md files the date is set according to the last modified date in S3.  Other approaches of determining document date may be more appropriate for your use case.  The date of each Document is set in the index_documents_helper.py file in the /containers/lambda_index folder.  Here each document’s date is stored in an OpenSearch index which can later be queried.
 
-To enable age-based search, the parameter use_date must be set to True and the years_until_no_value must be set to a number of years age where the document no longer has value.  These parameters are located in the file opensearch_retrieve_helper in the /containers/streamlit folder for production-like deployment and the file 3_search_indices.ipynb in the /notebooks/sagemaker_studio folder for development and test.
+To enable age-based search, the parameter use_date must be set to True and the years_until_no_value must be set to a number of years age where the document no longer has value.  These parameters are located in the file opensearch_retrieve_helper in the ```/containers/streamlit``` folder for production-like deployment and the file ```3_search_indices.ipynb``` in the ```/notebooks/sagemaker_studio``` folder for development and test.
 
-Based on the above parameters, each full text search relevance score is adjusted in proportion to the document’s age until the years_until_no_value is reached, at which point the relevance score is zero.  Full text hits with lower scores are less likely to appear than those with higher scores.  All full text search hits with adjusted relevance scores below the value set in the full_text_hit_score_threshold parameter are ignored
+Based on the above parameters, each full text search relevance score is adjusted in proportion to the document’s age until the ```years_until_no_value``` value is reached, at which point the relevance score is zero.  Full text hits with lower scores are less likely to appear than those with higher scores.  All full text search hits with adjusted relevance scores below the value set in the ```full_text_hit_score_threshold``` parameter are ignored
 
 ## Guardrails to filter harmful content
 
@@ -97,54 +97,54 @@ The document ingestion pipeline uses S3 event notifications to Simple Queue Serv
 
 The web front end runs in a container on ECS Fargate behind an Application Load Balancer (ALB).
 
-To deploy production-like, the following steps are required:
-1.	Build the required container images into Elastic Container Registry (ECR).  AWS CodeBuild may be used for the container build. 
+### To deploy production-like, the following steps are required:
+**1.	Build the required container images into Elastic Container Registry (ECR).**  AWS CodeBuild may be used for the container build. 
  Buildspec files are provided in the repository.
 
     a. The Streamlit user interface container is built using files in the code repository folder ```/containers/streamlit```
 
-    b. The Lambda function container for OpenSearch setup is built using files in the code repository folder /containers/lambda_setup_opensearch
+    b. The Lambda function container for OpenSearch setup is built using files in the code repository folder ```/containers/lambda_setup_opensearch```
 
-    c. The  Lambda function container for OpenSearch indexing is built using files in the code repository folder /containers/lambda_index
+    c. The  Lambda function container for OpenSearch indexing is built using files in the code repository folder ```/containers/lambda_index```
 
-2.	Create the CloudFormation stack located in the /cloudformation folder in the code repository.
+**2.	Create the CloudFormation stack located in the ```/cloudformation``` folder in the code repository.**
 
-    a. Name the stack chatbot-demo.
+    a. Name the stack ```chatbot-demo```.
 
-    b. Set the CloudFormation stack parameters for the ECR repository names to point to the container images built in the step above: LambdaIndexEcrRepositoryName, LambdaOpenSearchSetupEcrRepositoryName, StreamlitImageEcrRepositoryName
+    b. Set the CloudFormation stack parameters for the ECR repository names to point to the container images built in the step above: ```LambdaIndexEcrRepositoryName```, ```LambdaOpenSearchSetupEcrRepositoryName```, ```StreamlitImageEcrRepositoryName```
 
-    c. Set the CloudFormation stack parameter DeploymentMode to "Prod"
+    c. Set the CloudFormation stack parameter ```DeploymentMode``` to "Prod"
 
-3.	Upload document base files to S3 – After the stack is complete, drop sample document base files into the S3 bucket created by the stack and wait several minutes for file indexing in OpenSearch to complete.  You can monitor the progress of indexing by monitoring the CloudWatch logs for the lambda function chatbot_prod_lambda_index.
+**3.	Upload document base files to S3** – After the stack is complete, drop sample document base files into the S3 bucket created by the stack and wait several minutes for file indexing in OpenSearch to complete.  You can monitor the progress of indexing by monitoring the CloudWatch logs for the lambda function ```chatbot_prod_lambda_index```.
 
-4.	Locate the URL of the ALB for the ECS service in the ECS console.  Open the URL in a browser on port 8501 to open the web user interface and ask questions.
+**4.	Locate the URL of the ALB for the ECS service in the ECS console.**  Open the URL in a browser on port 8501 to open the web user interface and ask questions.
 
 ## Development and testing deployment
 
-The development and testing deployment provides the ability to see the code running in a SageMaker Studio environment to understand how it works, try modifications and see the results in real time.  After confirming the changes work as expected, files in the /containers folder of the code repository can be updated for building container images in the production-like deployment outlined in the section above.
+The development and testing deployment provides the ability to see the code running in a SageMaker Studio environment to understand how it works, try modifications and see the results in real time.  After confirming the changes work as expected, files in the ```/containers``` folder of the code repository can be updated for building container images in the production-like deployment outlined in the section above.
 
-Container build is not required for the development and testing deployment as long as the CreateStreamlitEcs and CreateLambda parameters in the CloudFormation stack are set to "no" as described below.
+Container build is not required for the development and testing deployment.
 
-To deploy for development and testing, the following steps are required:
-1.	Create the CloudFormation stack located in the /cloudformation folder in the code repository.
+### To deploy for development and testing, the following steps are required:
+**1.	Create the CloudFormation stack located in the ```/cloudformation``` folder in the code repository.**
 
-    a. Name the stack chatbot-demo.
+    a. Name the stack ```chatbot-demo```.
 
-    b. Set the CloudFormation stack parameter DeploymentMode to "DevTest"
+    b. Set the CloudFormation stack parameter ```DeploymentMode``` to "DevTest"
         
     d. It will take 20-30 minutes for the stack to complete.
 
-3.	Create the SageMaker domain – After the stack is complete, run the script create_sagemaker_domain.sh in the sagemaker_studio folder of the code repository to create a SageMaker domain.  CloudShell in the AWS console is a useful tool to run such a command.
+**3.	Create the SageMaker domain** – After the stack is complete, run the script ```create_sagemaker_domain.sh``` in the ```/sagemaker_studio``` folder of the code repository to create a SageMaker domain.  CloudShell in the AWS console is a useful tool to run such a command.
 
-4.	Create a user in the SageMaker domain – After the SageMaker domain is created, use the console to create a user in the domain and launch SageMaker Studio.
+**4.	Create a user in the SageMaker domain** – After the SageMaker domain is created, use the console to create a user in the domain and launch SageMaker Studio.
 
-5.	Copy the SageMaker files from the code repository to Studio – After Studio launches, copy the files from the /sagemaker_studio/notebooks folder of the code repository into the root folder in SageMaker Studio.
+**5.	Copy the SageMaker files from the code repository to Studio** – After Studio launches, copy the files from the ```/sagemaker_studio/notebooks``` folder of the code repository into the root folder in SageMaker Studio.
 
-6.	Provide document base files – Drop sample document base files into the S3 bucket created by the stack.
+**6.	Provide document base files** – Drop sample document base files into the S3 bucket created by the stack.
 
-7.	Run notebooks in Studio – Run notebooks 1 and 2 to create and populate the OpenSearch indices.  Optionally, run notebook 3 to present questions and get responses.  Follow the instructions and prerequisites in each notebook.
+**7.	Run notebooks in Studio** – Run notebooks 1 and 2 to create and populate the OpenSearch indices.  Optionally, run notebook 3 to present questions and get responses.  Follow the instructions and prerequisites in each notebook.
 
-8.	Ask questions in the user interface – To use the user interface within the Studio environment in single-user mode, follow the instructions in notebook 4.
+**8.	Ask questions in the user interface** – To use the user interface within the Studio environment in single-user mode, follow the instructions in notebook 4.
 
 ## Tunable parameters
 
@@ -152,42 +152,42 @@ Several tunable parameters can be changed to best align with the use case.  Defa
 
 #### /cloudformation/chatbot_demo_cfn.yml
 
-- Resource BedrockGuardrail FiltersConfig sets the strength for each type of content filter.  Additional information on the Bedrock Guardrails filter config is available in the AWS documentation at https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-bedrock-guardrail-contentfilterconfig.html
-- Parameter BedrockGuardrailsBlockMessage sets the message given to the user if Bedrock Guardrails blocks the input or output.
+- ```FiltersConfig``` in the ```BedrockGuardrail``` resource sets the strength for each type of content filter.  Additional information on the Bedrock Guardrails filter config is available in the AWS documentation at https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-bedrock-guardrail-contentfilterconfig.html
+- Parameter ```BedrockGuardrailsBlockMessage``` sets the message given to the user if Bedrock Guardrails blocks the input or output.
 
 #### /containers/streamlit/rag_search.cfg
 
-- MaxLengthRagText – Sets the maximum length of context provided to the Amazon Bedrock foundation model from the document context retrieved through OpenSearch.  Any context exceeding this length is truncated.  Since context is sorted in reverse order of relevance score, the least relevant context is most likely to be truncated.
+- ```MaxLengthRagText``` – Sets the maximum length of context provided to the Amazon Bedrock foundation model from the document context retrieved through OpenSearch.  Any context exceeding this length is truncated.  Since context is sorted in reverse order of relevance score, the least relevant context is most likely to be truncated.
 
-- FullTextHitScoreThreshold – Defines the percentile cut-off of full text hit scores that will be included in the result.  Any full text results with a relevance score less than this value times the highest result’s relevance score are excluded from the context.
+- ```FullTextHitScoreThreshold``` – Defines the percentile cut-off of full text hit scores that will be included in the result.  Any full text results with a relevance score less than this value times the highest result’s relevance score are excluded from the context.
 
-- UseSummary – If set to True the relevance of all the text in a document from the document summary index is used as part of the overall relevance score for chunks.  If set to false the document summary index is not used, and only the full text relevance scores are used to determine the relevance of chunks.
+- ```UseSummary``` – If set to True the relevance of all the text in a document from the document summary index is used as part of the overall relevance score for chunks.  If set to false the document summary index is not used, and only the full text relevance scores are used to determine the relevance of chunks.
 
-- SummaryWeightOverFullText – Sets the weighting of document summary result vs. full text result relevance scores in calculating the overall relevance score of a particular chunk.  Higher values weight the document summary relevance more.  Lower values weight the full text summary relevance more.
+- ```SummaryWeightOverFullText``` – Sets the weighting of document summary result vs. full text result relevance scores in calculating the overall relevance score of a particular chunk.  Higher values weight the document summary relevance more.  Lower values weight the full text summary relevance more.
 
-- SummaryHitScoreThreshold – Sets the percentage value used as a cut-off for relevance scores retrieved from the OpenSearch document summary index.  Any document summary results with a relevance score less than this value times the highest document summary result’s relevance score are excluded from the context.
+- ```SummaryHitScoreThreshold``` – Sets the percentage value used as a cut-off for relevance scores retrieved from the OpenSearch document summary index.  Any document summary results with a relevance score less than this value times the highest document summary result’s relevance score are excluded from the context.
 
-- UseDate - If set to True the age of each document will be used to adjust the relevance of full text hit scores downward as they age until the years_until_no_value age is reached, at which point the relevance score will become zero.
+- ```UseDate``` - If set to True the age of each document will be used to adjust the relevance of full text hit scores downward as they age until the years_until_no_value age is reached, at which point the relevance score will become zero.
 
-- YearsUntilNoValue - Sets the number of years each document may age until it has no value as described above.
+- ```YearsUntilNoValue``` - Sets the number of years each document may age until it has no value as described above.
 
-- S3 Key to Weblink Conversion section - These parameters are used for the feature to convert .md file references in search results to corresponding web pages.  Refer to the section [Markdown S3 key to weblink reference feature](#Markdown-S3-key-to-weblink-reference-feature) in this document for more information.
+- ```S3 Key to Weblink Conversion``` section - These parameters are used for the feature to convert .md file references in search results to corresponding web pages.  Refer to the section [Markdown S3 key to weblink reference feature](#Markdown-S3-key-to-weblink-reference-feature) in this document for more information.
 
-- Text Gen section – These parameters set the configuration for the Amazon Bedrock foundation model used to present answers to the users based on the document context retrieved through OpenSearch.  Conservative temperature and topP values are set by default to stay close to the original content.  Additional information on these parameters is available in the AWS documentation at https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-titan-text.html
+- ```Text Gen``` section – These parameters set the configuration for the Amazon Bedrock foundation model used to present answers to the users based on the document context retrieved through OpenSearch.  Conservative temperature and topP values are set by default to stay close to the original content.  Additional information on these parameters is available in the AWS documentation at https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-titan-text.html
 
 #### /containers/lambda_index/index_documents_helper.py
 
-- text_gen_config – This is used to set the configuration for Titan Text Express as the LLM used to summarize documents used in the document summary index.  Conservative temperature and topP values are set by default to stay close to the original content.  Additional information on these parameters is available in the AWS documentation at https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-titan-text.html
+- ```text_gen_config``` – This is used to set the configuration for Titan Text Express as the LLM used to summarize documents used in the document summary index.  Conservative temperature and topP values are set by default to stay close to the original content.  Additional information on these parameters is available in the AWS documentation at https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-titan-text.html
 
 #### /containers/lambda_index/app.py
 
-- max_file_size – Sets the maximum file size that will be indexed into OpenSearch.  Use this to filter out documents that are excessively large.  Higher values may exceed the 15 minute maximum run time for Lambda.
+- ```max_file_size``` – Sets the maximum file size that will be indexed into OpenSearch.  Use this to filter out documents that are excessively large.  Higher values may exceed the 15 minute maximum run time for Lambda.
 
-- Max_summary_length – Sets the maximum document summary size in characters.  Documents are progressively summarized to fit within this limit.  Smaller values produce more focused summaries.  Larger values require less time to produce.
+- ```max_summary_length``` – Sets the maximum document summary size in characters.  Documents are progressively summarized to fit within this limit.  Smaller values produce more focused summaries.  Larger values require less time to produce.
 
 ## Document index status feature
 
-The indexing status of the documents in the S3 bucket created by the CloudFormation stack can be viewed by selecting "Index status" in the side menu of the web user interface.  This shows a list of all the documents in the S3 bucket and the number of summary and full text index chunks in OpenSearch.  If zero chunks are shown then indexing has likely not yet begun for that document.  By scrolling right the date of each document as recorded in the date index can also be viewed. 
+The indexing status of the documents in the S3 bucket created by the CloudFormation stack can be viewed by selecting "Index status" in the side menu of the web user interface.  This shows a list of all the documents in the S3 bucket and the number of summary and full text index chunks in OpenSearch.  If zero chunks are shown then indexing has likely not yet begun for that document.  The date of each document as recorded in the date index can also be viewed by scrolling to the right. 
 
 The screenshot below shows an example of the feature.
 
@@ -198,37 +198,37 @@ The screenshot below shows an example of the feature.
 The CloudFormation stack can deploy a CloudWatch Logs group and a CloudWatch dashboard to provide observability on Bedrock invocations. 
  This will show the number of requests made using Bedrock Guardrails, the number of blocked requests, and the number of Bedrock tokens consumed.  These resources will be deployed if the CloudFormation stack parameter CreateBedrockInvocationLogs is set to yes.
 
-When this option is enabled, the stack deploys a Lambda custom resource that will update the Bedrock invocation logging setting for the account with a new IAM role and CloudWatch Logs group.  This will override any existing Bedrock invocation logging setting.  For this reason, the default value for the CreateBedrockInvocationLogs is no.
+When this option is enabled, the stack deploys a Lambda custom resource that will update the Bedrock invocation logging setting for the account with a new IAM role and CloudWatch Logs group.  This will overwrite any existing Bedrock invocation logging setting in the account.  For this reason, the default value for the ```CreateBedrockInvocationLogs``` parameter is "no".  Set the parameter to "yes" if you are sure you will not interfere with existing Bedrock invocation logging in the account.
 
 The screenshot below shows an example of the CloudWatch dashboard.
 
 ![image info](images/bedrock_invocations_dashboard_screenshot.png)
 
-By enabling Bedrock invocation logging, you will be able to see the details of all Bedrock requests, including the content of the request and the response.  These are available in the log group created by the CloudFormation stack which can be found by searching CloudWatch log groups for "bedrock-invocation".  For Q&A requests, the Bedrock Guardrail status is also included in the logs. Summarization requests made to Bedrock during document ingestion do not include Guardrails actions as these are made without a Guardrail. 
+By enabling Bedrock invocation logging, you will be able to see the details of all Bedrock requests, including the content of the request and the response.  These are available in the log group created by the CloudFormation stack which can be found by searching CloudWatch log groups for ```bedrock-invocation```.  For Q&A requests, the Bedrock Guardrail status is also included in the logs. Summarization requests made to Bedrock during document ingestion do not include Guardrails actions as these are made without a Guardrail. 
 
 ## Markdown S3 key to weblink reference feature
 
-In a case where markdown formatted source documents in S3 are also the source for a web site accessible to users, the references provided by the Streamlit user interface can optionally be configured to be clickable links to the target web pages.  This can help provide a better user experience in this use case by enabling one-click access to references.
+This feature is for special use cases where markdown formatted source documents in S3 are also the source for a web site accessible to users.  By using this feature, the references provided by the Streamlit user interface can be configured as clickable links to the target web pages.  This can help provide a better user experience by enabling one-click access to references.
 
-To use this feature, set the parameters below in the file /containers/streamlit/rag_search.cfg
+To use this feature, set the parameters below in the file ```/containers/streamlit/rag_search.cfg```
 
-- use_s3_key_to_weblink_conversion – Sets the feature on or off based on the Boolean value True or False.  When set to True, the feature is enabled.
+- ```use_s3_key_to_weblink_conversion``` – Sets the feature on or off based on the Boolean value True or False.  When set to True, the feature is enabled.
 
-- s3_key_prefix_to_remove – Sets the portion of the S3 prefix to remove from markdown file S3 keys.
+- ```s3_key_prefix_to_remove``` – Sets the portion of the S3 prefix to remove from markdown file S3 keys.
 
-- weblink_prefix – Sets the prefix to add to the S3 key value after the s3_key_to_remove is removed.
+- ```weblink_prefix``` – Sets the prefix to add to the S3 key value after the ```s3_key_to_remove``` is removed.
 
-- s3_key_suffix_to_remove – Sets the S3 key suffix to remove.
+- ```s3_key_suffix_to_remove``` – Sets the S3 key suffix to remove.
 
-- weblink_suffix – Sets the suffix to add to the S3 key value after the s3_key_suffix_to_remove is removed.
+- ```weblink_suffi```x – Sets the suffix to add to the S3 key value after the ```s3_key_suffix_to_remove``` is removed.
 
 ## Cleanup
 
 To clean up, perform the following steps:
 
-1. Empty the S3 document bucket – In the S3 console, select the bucket created by the CloudFormation stack, click the Empty button and confirm.
+**1. Empty the S3 document bucket** – In the S3 console, select the bucket created by the CloudFormation stack, click the Empty button and confirm.
 
-2.	If a SageMaker domain was created, it must be deleted with the following procedure:
+**2.	In deveopment and testing mode the SageMaker domain must be deleted with the following procedure:**
 
     a. Shut down Studio – If SageMaker Studio is running for a user created under the demonstration domain, shut it down by selecting Shut Down under the File menu and then selecting Shutdown All.
 
@@ -244,13 +244,13 @@ To clean up, perform the following steps:
 
     - In the SageMaker console, check the status of the domain.  Wait until the status of the domain changes to deleted.
 
-3.	Delete the stack – In the CloudFormation console, select the chatbot-demo stack, choose Delete and confirm.  Deletion will take several minutes.
+**3.	Delete the stack** – In the CloudFormation console, select the chatbot-demo stack, choose Delete and confirm.  Deletion will take several minutes.
 
 ## Supported region
 
-This repository is intended for use in the AWS us-gov-west-1 region.
+This repository is intended for use in the AWS ```us-gov-west-1``` region.
 
-The code in this repository has also worked in the us-east-1 region.  Regions and partitions are referred by parameters in code to help enable region portability.  However, testing in regions outside us-gov-west-1 is limited.  When deploying in development and test mode use SageMaker Studio Classic.
+The code in this repository has also worked in the ```us-east-1``` region.  Regions and partitions are referred by parameters in code to help enable region portability.  However, testing in regions outside ```us-gov-west-1``` is limited.  When deploying in development and test mode use SageMaker Studio Classic.
 
 ## Contributors
 
