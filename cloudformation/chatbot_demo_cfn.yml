@@ -4,6 +4,13 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: VPC with OpenSearchServiceDomain, endpoints and NAT Gateway
 Parameters:
+  DeploymentMode:
+    Description: Select DevTest for deveopment/test or Prod for production-like
+    Type: String
+    Default: "DevTest"
+    AllowedValues:
+      - "DevTest"
+      - "Prod"
   VpcCidrBlock:
     Description: CIDR block for the VPC
     Type: String
@@ -43,13 +50,6 @@ Parameters:
     Description: ECR repository name for the Lambda OpenSearch setup function
     Type: String
     Default: chatbot_prod_lambda_setup_opensearch
-  CreateLambda:
-    Description: Select yes/no to include Lambda functions in the stack
-    Type: String
-    Default: "no"
-    AllowedValues:
-      - "yes"
-      - "no"
   StreamlitImageEcrRepositoryName:
     Description: ECR repository name for the Streamlit user interface container
     Type: String
@@ -58,20 +58,6 @@ Parameters:
     Description: User name for the Streamlit user interface container
     Type: String
     Default: appuser
-  CreateStreamlitEcs:
-    Description: Select yes/no to include Streamlit ECS user interface in the stack
-    Type: String
-    Default: "no"
-    AllowedValues:
-      - "yes"
-      - "no"
-  SageMakerStudioSupport:
-    Description: Select yes/no to include resources to support SageMaker Studio in the stack
-    Type: String
-    Default: "yes"
-    AllowedValues:
-      - "yes"
-      - "no"
   BedrockGuardrailsBlockMessage:
     Description: Message given to user for prompts or responses blocked by Bedrcok Guardrail
     Type: String
@@ -85,9 +71,9 @@ Parameters:
       - "no"
 
 Conditions:
-  IncludeLambda: !Equals [!Ref "CreateLambda", "yes"]
-  IncludeStreamlitEcs: !Equals [!Ref "CreateStreamlitEcs", "yes"]
-  IncludeSageMakerStudioSupport: !Equals [!Ref "SageMakerStudioSupport", "yes"]
+  IncludeLambda: !Equals [!Ref "DeploymentMode", "Prod"]
+  IncludeStreamlitEcs: !Equals [!Ref "DeploymentMode", "Prod"]
+  IncludeSageMakerStudioSupport: !Equals [!Ref "DeploymentMode", "DevTest"]
   IncludeBedrockInvocationLogs: !Equals [!Ref "CreateBedrockInvocationLogs", "yes"]
 
 Resources:
