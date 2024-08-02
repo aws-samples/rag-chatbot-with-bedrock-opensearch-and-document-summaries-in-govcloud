@@ -75,15 +75,42 @@ The CloudFormation template deploys a guardrail and a guardrail version.  The ``
 
 Two deployment options are available.  One or both can be chosen using parameters in CloudFormation at stack creation.
 
-1.	**Production-like** using Lambda functions to handle OpenSearch setup and index management, and web user interface hosted in Elastic Container Service with load balancer and internet gateway
+1.	**Development and testing** using SageMaker Studio notebooks to handle OpenSearch setup and index management, and web user interface hosted in the SageMaker Studio environment that can be accessed by the local user
 
-2.	**Development and testing** using SageMaker Studio notebooks to handle OpenSearch setup and index management, and web user interface hosted in the SageMaker Studio environment that can be accessed by the local user
+2.	**Production-like** using Lambda functions to handle OpenSearch setup and index management, and web user interface hosted in Elastic Container Service with load balancer and internet gateway
 
 Both deployment options use a common CloudFormation script that creates the following key resources:
 - VPC with subnets, endpoints and security groups
 - OpenSearch domain
 - S3 bucket to contain the files in the document base
 - IAM roles and permissions needed to perform the demonstration
+
+## Development and testing deployment
+
+The development and testing deployment provides the ability to see the code running in a SageMaker Studio environment to understand how it works, try modifications and see the results in real time.  After confirming the changes work as expected, files in the ```/containers``` folder of the code repository can be updated for building container images in the production-like deployment outlined in the section above.
+
+Container build is not required for the development and testing deployment.
+
+### To deploy for development and testing, the following steps are required:
+**1.	Create the CloudFormation stack located in the ```/cloudformation``` folder in the code repository.**
+
+ - Name the stack ```chatbot-demo```.
+
+ - Set the CloudFormation stack parameter ```DeploymentMode``` to "DevTest"
+        
+ - It will take 20-30 minutes for the stack to complete.
+
+**3.	Create the SageMaker domain** – After the stack is complete, run the script ```create_sagemaker_domain.sh``` in the ```/sagemaker_studio``` folder of the code repository to create a SageMaker domain.  CloudShell in the AWS console is a useful tool to run such a command.
+
+**4.	Create a user in the SageMaker domain** – After the SageMaker domain is created, use the console to create a user in the domain and launch SageMaker Studio.
+
+**5.	Copy the SageMaker files from the code repository to Studio** – After Studio launches, copy the files from the ```/sagemaker_studio/notebooks``` folder of the code repository into the root folder in SageMaker Studio.
+
+**6.	Provide document base files** – Drop sample document base files into the S3 bucket created by the stack.
+
+**7.	Run notebooks in Studio** – Run notebooks 1 and 2 to create and populate the OpenSearch indices.  Optionally, run notebook 3 to present questions and get responses.  Follow the instructions and prerequisites in each notebook.
+
+**8.	Ask questions in the user interface** – To use the user interface within the Studio environment in single-user mode, follow the instructions in notebook 4.
 
 ## Production-like deployment
 
@@ -115,36 +142,9 @@ The web front end runs in a container on ECS Fargate behind an Application Load 
 
  - Set the CloudFormation stack parameter ```DeploymentMode``` to "Prod"
 
-**3.	Upload document base files to S3** – After the stack is complete, drop sample document base files into the S3 bucket created by the stack and wait several minutes for file indexing in OpenSearch to complete.  You can monitor the progress of indexing by monitoring the CloudWatch logs for the lambda function ```chatbot_prod_lambda_index```.
+**3.	Upload document base files to S3** – After the stack is complete, drop sample document base files into the S3 bucket created by the stack and wait several minutes for file indexing in OpenSearch to complete.  You can monitor the progress of indexing by monitoring the CloudWatch logs for the lambda function ```chatbot_prod_lambda_index```, or by monitoring in the web user interface using the document index status page desribed [here](#Document-index-status-feature).
 
 **4.	Locate the URL of the ALB for the ECS service in the ECS console.**  Open the URL in a browser on port 8501 to open the web user interface and ask questions.
-
-## Development and testing deployment
-
-The development and testing deployment provides the ability to see the code running in a SageMaker Studio environment to understand how it works, try modifications and see the results in real time.  After confirming the changes work as expected, files in the ```/containers``` folder of the code repository can be updated for building container images in the production-like deployment outlined in the section above.
-
-Container build is not required for the development and testing deployment.
-
-### To deploy for development and testing, the following steps are required:
-**1.	Create the CloudFormation stack located in the ```/cloudformation``` folder in the code repository.**
-
- - Name the stack ```chatbot-demo```.
-
- - Set the CloudFormation stack parameter ```DeploymentMode``` to "DevTest"
-        
- - It will take 20-30 minutes for the stack to complete.
-
-**3.	Create the SageMaker domain** – After the stack is complete, run the script ```create_sagemaker_domain.sh``` in the ```/sagemaker_studio``` folder of the code repository to create a SageMaker domain.  CloudShell in the AWS console is a useful tool to run such a command.
-
-**4.	Create a user in the SageMaker domain** – After the SageMaker domain is created, use the console to create a user in the domain and launch SageMaker Studio.
-
-**5.	Copy the SageMaker files from the code repository to Studio** – After Studio launches, copy the files from the ```/sagemaker_studio/notebooks``` folder of the code repository into the root folder in SageMaker Studio.
-
-**6.	Provide document base files** – Drop sample document base files into the S3 bucket created by the stack.
-
-**7.	Run notebooks in Studio** – Run notebooks 1 and 2 to create and populate the OpenSearch indices.  Optionally, run notebook 3 to present questions and get responses.  Follow the instructions and prerequisites in each notebook.
-
-**8.	Ask questions in the user interface** – To use the user interface within the Studio environment in single-user mode, follow the instructions in notebook 4.
 
 ## Tunable parameters
 
