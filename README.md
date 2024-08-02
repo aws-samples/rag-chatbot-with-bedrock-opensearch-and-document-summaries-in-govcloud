@@ -69,7 +69,7 @@ Based on the above parameters, each full text search relevance score is adjusted
 
 The chatbot includes a harmful content filter enabled by Guardrails for Amazon Bedrock.  This provides configurable thresholds to filter content across hate, insults, sexual, violence, misconduct, and prompt attack.  If a user asks a question, or an answer is retrieved that exceeds the guardrail threshold in any of these categories, the chatbot answers "Sorry, I cannot answer this question." or other block message configured in a CloudFormation stack parameter.
 
-The CloudFormation template deploys a guardrail and a guardrail version.  The chat.py file in the /containers/streamlit folder gets the guardrail ID and version from the CloudFormation stack and applies those in every request to Bedrock.
+The CloudFormation template deploys a guardrail and a guardrail version.  The ```chat.py``` file in the ```/containers/streamlit``` folder gets the guardrail ID and version from the CloudFormation stack and applies those in every request to Bedrock.
 
 ## Deployment options
 
