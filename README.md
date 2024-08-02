@@ -73,9 +73,9 @@ The CloudFormation template deploys a guardrail and a guardrail version.  The ``
 
 ## Deployment options
 
-Two deployment options are available.  One or both can be chosen using parameters in CloudFormation at stack creation.
+Two deployment options are available.  One must be chosen using the ```DeploymentMode``` parameter in CloudFormation at stack creation.
 
-1.	**Development and testing** using SageMaker Studio notebooks to handle OpenSearch setup and index management, and web user interface hosted in the SageMaker Studio environment that can be accessed by the local user
+1.	**Development and testing** using SageMaker Studio notebooks to handle OpenSearch setup and index management, and web user interface hosted in the SageMaker Studio environment that can be accessed by the local user - this is the default option
 
 2.	**Production-like** using Lambda functions to handle OpenSearch setup and index management, and web user interface hosted in Elastic Container Service with load balancer and internet gateway
 
