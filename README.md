@@ -100,7 +100,7 @@ Container build is not required for the development and testing deployment.
         
  - It will take 20-30 minutes for the stack to complete.
 
-**2. Request access to the Titan Text Express model in Amazon Bedrock** - If you haven't previously requested access to the Titan Text Express foundation model in Amazon Bedrock, you will need to do that using the instructions at https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html
+**2. Request access to the Titan Text Express model in Amazon Bedrock** - If you haven't previously requested access to the Titan Text Express foundation model in Amazon Bedrock, you will need to do that using the instructions [here](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html)
 
 **3.	Create the SageMaker domain** – After the stack is complete, run the script ```create_sagemaker_domain.sh``` in the ```/sagemaker_studio``` folder of the code repository to create a SageMaker domain.  CloudShell in the AWS console is a useful tool to run such a command.
 
@@ -136,7 +136,7 @@ The web front end runs in a container on ECS Fargate behind an Application Load 
 
  - The  Lambda function container for OpenSearch indexing is built using files in the code repository folder ```/containers/lambda_index```
 
-**2. Request access to the Titan Text Express model in Amazon Bedrock** - If you haven't previously requested access to the Titan Text Express foundation model in Amazon Bedrock, you will need to do that using the instructions at https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html
+**2. Request access to the Titan Text Express model in Amazon Bedrock** - If you haven't previously requested access to the Titan Text Express foundation model in Amazon Bedrock, you will need to do that using the instructions [here](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html)
 
 **3.	Create the CloudFormation stack located in the ```/cloudformation``` folder in the code repository.**
 
