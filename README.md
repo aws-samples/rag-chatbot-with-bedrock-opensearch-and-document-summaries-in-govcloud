@@ -154,11 +154,11 @@ The web front end runs in a container on ECS Fargate behind an Application Load 
 
 Amazon Bedrock provides a choice of models in the us-gov-west-1 region.  The following options are available for Q&A in the chatbot:
 
- - Amazon Titan Text G1 - Express (default) - A good choice for many use cases.  Provides concise answers cost effectively.  Supports FedRAMP High use cases.  More information [here](https://docs.aws.amazon.com/bedrock/latest/userguide/titan-text-models.html).
+ - **Amazon Titan Text G1 - Express (default)** - A good choice for many use cases.  Provides concise answers cost effectively.  Supports FedRAMP High use cases.  More information [here](https://docs.aws.amazon.com/bedrock/latest/userguide/titan-text-models.html).
 
- - Meta Llama 3 8B Instruct - A good choice where more expressive answers are desired and the use case falls within the Meta Llama 3 [Acceptable Use Policy](https://llama.meta.com/llama3/use-policy/).  More information [here](https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct).
+ - **Meta Llama 3 8B Instruct** - A good choice where more expressive answers are desired and the use case falls within the Meta Llama 3 [Acceptable Use Policy](https://llama.meta.com/llama3/use-policy/).  More information [here](https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct).
 
- - Meta Llama 3 40B Instruct - Similar to Llama 3 8B Instruct for Q&A use cases.  More information [here](https://huggingface.co/meta-llama/Meta-Llama-3-70B-Instruct).
+ - **Meta Llama 3 40B Instruct** - Similar to Llama 3 8B Instruct for Q&A use cases.  More information [here](https://huggingface.co/meta-llama/Meta-Llama-3-70B-Instruct).
 
 See the [RAG search configuration section below](/containers/streamlit/rag_search.cfg) for details on how to select the Q&A foundation model.
 
