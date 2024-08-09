@@ -160,7 +160,7 @@ Amazon Bedrock provides a choice of models in the us-gov-west-1 region.  The fol
 
  - **Meta Llama 3 40B Instruct** - Similar to Llama 3 8B Instruct for Q&A use cases.  More information [here](https://huggingface.co/meta-llama/Meta-Llama-3-70B-Instruct).
 
-See the [RAG search configuration section below](#/containers/streamlit/rag_search.cfg) for details on how to select the Q&A foundation model.
+See the RAG search configuration section below for details on how to select and configure the Q&A foundation model.
 
 ## Tunable parameters
 
