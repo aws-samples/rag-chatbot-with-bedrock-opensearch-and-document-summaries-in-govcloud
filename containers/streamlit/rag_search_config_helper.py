@@ -27,6 +27,7 @@ def read_rag_search_config():
     config_dict['max_token_count'] = config['Text Gen'].getint('MaxTokenCount', 350)
     config_dict['temperature'] = config['Text Gen'].getint('Temperature', 0)
     config_dict['top_p'] = config['Text Gen'].getint('TopP', 1)
+    config_dict['max_gen_len'] = config['Text Gen'].getint("MaxGenLen", 512)
     config_dict['bedrock_model_id'] = config['Text Gen'].get('BedrockModelId', 'amazon.titan-text-express-v1')
     # Clamp the values from the config file to within limits
     config_dict = clamp_rag_search_config(config_dict)
