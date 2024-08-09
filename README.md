@@ -27,7 +27,7 @@ Completing this demonstration from setup to cleanup will take approximately 1.5 
 The architecture makes use of the following major components in AWS GovCloud:
 - Amazon S3 bucket to store the documents used as the knowledge repository
 - Amazon OpenSearch domain to host a searchable index of the document repository with semantic search capability
-- Amazon Titan Text Express Foundation Model on Amazon Bedrock to serve requests to answer user questions based on OpenSearch content matches
+- Foundation Model on Amazon Bedrock to serve requests to answer user questions based on OpenSearch content matches
 - Amazon SageMaker Studio to host demonstration notebooks and web user interface in development and test deployment
 - Elastic Container Service (ECS) to host the web user interface in production-like deployment
 - A Virtual Private Cloud (VPC) to support the OpenSearch, SageMaker Studio and ECS components
@@ -43,7 +43,7 @@ The diagram below illustrates the high-level architecture.
 4. New documents in the S3 bucket have their date indexed into OpenSearch by a Lambda function or a SageMaker Studio notebook
 5. A user accesses the Streamlit web user interface, which runs on Elastic Container Service or in SageMaker Studio
 6. The user’s question is searched against the document summary index in OpenSearch to identify the most relevant documents.  The user’s question is searched against the full text index in OpenSearch.  Full text results from documents that have summary matches are promoted.
-7. The most relevant search results are provided as context along with the user’s question to Amazon Bedrock’s Titan Text Express foundation model.  The foundation model transforms the search results into a concise, meaningful answer.  This answer along with document references are presented back to the user in the Streamlit web user interface.
+7. The most relevant search results are provided as context along with the user’s question to a foundation model on Amazon Bedrock.  The foundation model transforms the search results into a concise, meaningful answer.  This answer along with document references are presented back to the user in the Streamlit web user interface.
 
 ## Semantic search capability
 
@@ -100,7 +100,7 @@ Container build is not required for the development and testing deployment.
         
  - It will take 20-30 minutes for the stack to complete.
 
-**2. Request access to the Titan Text Express model in Amazon Bedrock** - If you haven't previously requested access to the Titan Text Express foundation model in Amazon Bedrock, you will need to do that using the instructions [here](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html)
+**2. Request access to the Titan Text Express model in Amazon Bedrock** - If you haven't previously requested access to the Titan Text Express foundation model in Amazon Bedrock, you will need to do that using the instructions [here](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html).  If you want to use Llama 3 models in place of Titan Text Express, you will need to also request those models using the same process.
 
 **3.	Create the SageMaker domain** – After the stack is complete, run the script ```create_sagemaker_domain.sh``` in the ```/sagemaker_studio``` folder of the code repository to create a SageMaker domain.  CloudShell in the AWS console is a useful tool to run such a command.
 
@@ -136,7 +136,7 @@ The web front end runs in a container on ECS Fargate behind an Application Load 
 
  - The  Lambda function container for OpenSearch indexing is built using files in the code repository folder ```/containers/lambda_index```
 
-**2. Request access to the Titan Text Express model in Amazon Bedrock** - If you haven't previously requested access to the Titan Text Express foundation model in Amazon Bedrock, you will need to do that using the instructions [here](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html)
+**2. Request access to the Titan Text Express model in Amazon Bedrock** - If you haven't previously requested access to the Titan Text Express foundation model in Amazon Bedrock, you will need to do that using the instructions [here](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html).  If you want to use Llama 3 models in place of Titan Text Express, you will need to also request those models using the same process.
 
 **3.	Create the CloudFormation stack located in the ```/cloudformation``` folder in the code repository.**
 
@@ -150,6 +150,18 @@ The web front end runs in a container on ECS Fargate behind an Application Load 
 
 **5.	Locate the URL of the ALB for the ECS service in the ECS console.**  Open the URL in a browser on port 8501 to open the web user interface and ask questions.
 
+## Choice of foundation models for Q&A
+
+Amazon Bedrock provides a choice of models in the us-gov-west-1 region.  The following options are available for Q&A in the chatbot:
+
+ - Amazon Titan Text G1 - Express (default) - A good choice for many use cases.  Provides concise answers cost effectively.  Supports FedRAMP High use cases.  More information [here](https://docs.aws.amazon.com/bedrock/latest/userguide/titan-text-models.html).
+
+ - Meta Llama 3 8B Instruct - A good choice where more expressive answers are desired and the use case falls within the Meta Llama 3 [Acceptable Use Policy](https://llama.meta.com/llama3/use-policy/).  More information [here](https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct).
+
+ - Meta Llama 3 40B Instruct - Similar to Llama 3 8B Instruct for Q&A use cases.  More information [here](https://huggingface.co/meta-llama/Meta-Llama-3-70B-Instruct).
+
+See the [RAG search configuration section below](/containers/streamlit/rag_search.cfg) for details on how to select the Q&A foundation model.
+
 ## Tunable parameters
 
 Several tunable parameters can be changed to best align with the use case.  Default values will work in most cases.
@@ -161,7 +173,9 @@ Several tunable parameters can be changed to best align with the use case.  Defa
 
 #### /containers/streamlit/rag_search.cfg
 
-- ```MaxLengthRagText``` – Sets the maximum length of context provided to the Amazon Bedrock foundation model from the document context retrieved through OpenSearch.  Any context exceeding this length is truncated.  Since context is sorted in reverse order of relevance score, the least relevant context is most likely to be truncated.
+- ```Text Gen``` section – These parameters select the foundation model and parameters used to present answers to the users based on the document context retrieved through OpenSearch.  Titan Text Express is the default foundation model for Q&A.  Conservative temperature and topP values are set by default to stay close to the content of the documents provided.  A Llama 3 model may optionally be selected in this section by uncommenting the line for the desired model and commenting other models.  Additional information on setting model parameters is available in the AWS documentation at https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters.html
+
+- ```MaxLengthRagText``` – Sets the maximum length of context provided to the Amazon Bedrock foundation model from the document context retrieved through OpenSearch.  Any context exceeding this length is truncated.  Since context is sorted in reverse order of relevance score, the least relevant context is most likely to be truncated.  This value should be set to no more than the number of characters supported by the context length of the selected foundation model.
 
 - ```FullTextHitScoreThreshold``` – Defines the percentile cut-off of full text hit scores that will be included in the result.  Any full text results with a relevance score less than this value times the highest result’s relevance score are excluded from the context.
 
@@ -171,17 +185,15 @@ Several tunable parameters can be changed to best align with the use case.  Defa
 
 - ```SummaryHitScoreThreshold``` – Sets the percentage value used as a cut-off for relevance scores retrieved from the OpenSearch document summary index.  Any document summary results with a relevance score less than this value times the highest document summary result’s relevance score are excluded from the context.
 
-- ```UseDate``` - If set to True the age of each document will be used to adjust the relevance of full text hit scores downward as they age until the years_until_no_value age is reached, at which point the relevance score will become zero.
+- ```UseDate``` - If set to True the age of each document will be used to adjust the relevance of full text hit scores downward as they age until the ```YearsUntilNoValue``` age is reached, at which point the relevance score will become zero.
 
 - ```YearsUntilNoValue``` - Sets the number of years each document may age until it has no value as described above.
 
 - ```S3 Key to Weblink Conversion``` section - These parameters are used for the feature to convert .md file references in search results to corresponding web pages.  Refer to the section [Markdown S3 key to weblink reference feature](#Markdown-S3-key-to-weblink-reference-feature) in this document for more information.
 
-- ```Text Gen``` section – These parameters set the configuration for the Amazon Bedrock foundation model used to present answers to the users based on the document context retrieved through OpenSearch.  Conservative temperature and topP values are set by default to stay close to the original content.  Additional information on these parameters is available in the AWS documentation at https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-titan-text.html
-
 #### /containers/lambda_index/index_documents_helper.py
 
-- ```text_gen_config``` – This is used to set the configuration for Titan Text Express as the LLM used to summarize documents used in the document summary index.  Conservative temperature and topP values are set by default to stay close to the original content.  Additional information on these parameters is available in the AWS documentation at https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-titan-text.html
+- ```text_gen_config``` – This is used to set the configuration for Titan Text Express as the foundation model used to summarize documents used in the document summary index.  Conservative temperature and topP values are set by default to stay close to the original content.  Additional information on these parameters is available in the AWS documentation at https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-titan-text.html
 
 #### /containers/lambda_index/app.py
 
