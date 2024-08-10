@@ -5,7 +5,7 @@ version: 0.2
 
 # REQUIRED ENVIRONMENT VARIABLES
 # AWS_ACCOUNT_ID  - AWS account id  (e.g. 555555555555)
-# IMAGE_REPO_NAME - name of target ECR repository (use "chatbot_prod_streamlit" unless this is already being used)
+# IMAGE_REPO_NAME - name of target ECR repository (use "chatbot_prod_lambda_index" unless this is already being used)
 
 phases:
   pre_build:
