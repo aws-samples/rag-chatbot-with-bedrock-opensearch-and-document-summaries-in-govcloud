@@ -7,17 +7,17 @@ Running the chatbot in production-like mode requires three container images to b
 
 The three containers required are:
 
-- **Lambda OpenSearch setup** - Used by a Lambda function that runs once when the chatbot demo CloudFormation stack is complete to perform initial setup of the OpenSearch domain.  The initial setup consists of registering the embedding model and creating the indices in OpenSearch.
-- **Lambda index** - Used by a Lambda function that handles events in the S3 document repository bucket to index new documents and remove deleted documents from the OpenSearch indices.
-- **Streamlit web front end** - Used in Elastic Container Service (ECS) to run the Streamlit-based web user interface.
+- **Lambda OpenSearch setup** - Used by a Lambda function that runs once when the chatbot demo CloudFormation stack is complete to perform initial setup of the OpenSearch domain.  The initial setup consists of registering the embedding model and creating the indices in OpenSearch.  The source for this container image is at [/containers/lambda_setup_opensearch](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/containers/lambda_setup_opensearch).
+- **Lambda index** - Used by a Lambda function that handles events in the S3 document repository bucket to index new documents and remove deleted documents from the OpenSearch indices.  The source for this container image is at [/containers/lambda_index](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/containers/lambda_index)
+- **Streamlit web front end** - Used in Elastic Container Service (ECS) to run the Streamlit-based web user interface.  The source for this container image is at [/containers/streamlit](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/containers/streamlit).
 
 ### Option #1 - Use container build automation provided in this repository
 
-To enable container build, a CloudFormation template is provided at ```/containers/chatbot_demo_container_build_cfn.yml```.  This will deploy AWS CodeBuild projects and ECR repositories to build and store each of the three container images required.  The CodeBuild projects are configured to download the source from this project's GitHub repository, build the container image, and store it in ECR.
+To enable container build, a CloudFormation template is provided at [/containers/chatbot_demo_container_build_cfn.yml](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/containers/chatbot_demo_container_build_cfn.yml).  This will deploy AWS CodeBuild projects and ECR repositories to build and store each of the three container images required.  The CodeBuild projects are configured to download the source from this project's GitHub repository, build the container image, and store it in ECR.
 
 ### Option #2 - User-provided container build
 
-Alternatively, the user may choose to build the container images using another method as long as the container images are stored in ECR repositories with names that match the corresponding repository name parameters in the stack built by the main template at ```/containers/chatbot_demo_cfn.yml```.
+Alternatively, the user may choose to build the container images using another method as long as the container images are stored in ECR repositories with names that match the corresponding repository name parameters in the stack built by the main template at [/containers/chatbot_demo_cfn.yml](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/cloudformation/chatbot_demo_cfn.yml).
 
 ## Using the container build automation provided in this repository
 
@@ -65,7 +65,7 @@ You can confirm each container image has been saved in ECR by navigating to ECR 
 
 ## Building the main CloudFormation stack in production-like mode
 
-With the steps above completed, you can deploy the main CloudFormation stack in production-like mode.  Follow the instructions in the main readme file [here](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/README.md#Production-like-deployment)
+With the steps above completed, you can deploy the main CloudFormation stack in production-like mode.  Follow the instructions in the main readme file [here](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/README.md#Production-like-deployment).
 
 ## Cleanup
 
