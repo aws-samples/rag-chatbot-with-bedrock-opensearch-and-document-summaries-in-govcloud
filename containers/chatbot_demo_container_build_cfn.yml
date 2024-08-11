@@ -1,0 +1,312 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CodeBuild and ECR resources to create and store container images needed for production-like deployment of chatbot demo
+
+Parameters:
+  LambdaIndexEcrRepositoryName:
+    Description: ECR repository name for the OpenSearch indexing function
+    Type: String
+    Default: chatbot_prod_lambda_index
+  LambdaOpenSearchSetupEcrRepositoryName:
+    Description: ECR repository name for the Lambda OpenSearch setup function
+    Type: String
+    Default: chatbot_prod_lambda_setup_opensearch
+  StreamlitImageEcrRepositoryName:
+    Description: ECR repository name for the Streamlit user interface container
+    Type: String
+    Default: chatbot_prod_streamlit
+  NameTag:
+    Description: The value of the Name tag for resources created in this stack
+    Type: String
+    Default: chatbot-demo-container-build
+
+Resources:
+# Lambda Index container CodeBuild, ECR, and IAM role
+  LambdaIndexCodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: chatbot_prod_lambda_index
+      Description: Builds container image for Lambda function that udates the OpenSearch index
+      ServiceRole: !GetAtt LambdaIndexCodeBuildProjectServiceRole.Arn
+      Artifacts:
+        Type: no_artifacts
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:5.0
+        PrivilegedMode: true
+        EnvironmentVariables:
+        - Name: IMAGE_REPO_NAME
+          Type: PLAINTEXT
+          Value: !Ref LambdaIndexEcrRepositoryName
+        - Name: AWS_ACCOUNT_ID
+          Type: PLAINTEXT
+          Value: !Ref AWS::AccountId
+      Source:
+        Type: GITHUB
+        Location: https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud
+        BuildSpec: containers/lambda_index/buildspec.yml
+        GitCloneDepth: 1
+      SourceVersion: main
+      TimeoutInMinutes: 10
+
+  LambdaIndexRepository: 
+    Type: AWS::ECR::Repository
+    Properties: 
+      RepositoryName: !Ref LambdaIndexEcrRepositoryName
+      ImageScanningConfiguration: 
+        ScanOnPush: true
+
+  LambdaIndexCodeBuildProjectServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      RoleName: !Sub ${NameTag}-lambda-index-codebuild-service-role
+      ManagedPolicyArns:
+        - !Ref LambdaIndexContainerCodeBuildProjectServicePolicy
+
+  LambdaIndexContainerCodeBuildProjectServicePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Permissions needed for CodeBuild, ECR, and CloudWatch
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: CloudWatchLogsAccess
+            Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource:
+              - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${LambdaIndexEcrRepositoryName}
+              - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${LambdaIndexEcrRepositoryName}:*
+          - Sid: CodebuildAccess
+            Effect: Allow
+            Action:
+              - codebuild:CreateReportGroup
+              - codebuild:CreateReport
+              - codebuild:UpdateReport
+              - codebuild:BatchPutTestCases
+              - codebuild:BatchPutCodeCoverages
+            Resource:
+              - !Sub arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:report-group/chatbot_prod_lambda_index-*
+          - Sid: EcrGetAuthorizationToken
+            Effect: Allow
+            Action:
+              - ecr:GetAuthorizationToken
+            Resource: "*"
+          - Sid: EcrAccess
+            Effect: Allow
+            Action:
+              - ecr:BatchGetImage
+              - ecr:InitiateLayerUpload
+              - ecr:UploadLayerPart
+              - ecr:CompleteLayerUpload
+              - ecr:BatchCheckLayerAvailability
+              - ecr:GetDownloadUrlForLayer
+              - ecr:PutImage
+            Resource: 
+              - !Sub arn:${AWS::Partition}:ecr:${AWS::Region}:${AWS::AccountId}:repository/chatbot_prod_lambda_index
+              - !Sub arn:${AWS::Partition}:ecr:${AWS::Region}:${AWS::AccountId}:repository/chatbot_prod_lambda_index:*
+
+# Lambda OpenSearch Setup container CodeBuild, ECR, and IAM role
+  LambdaOpenSearchSetupCodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: chatbot_prod_lambda_opensearch_setup
+      Description: Builds container image for Lambda function that performs one-time setup of the OpenSearch index
+      ServiceRole: !GetAtt LambdaOpenSearchSetupCodeBuildRole.Arn
+      Artifacts:
+        Type: no_artifacts
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:5.0
+        PrivilegedMode: true
+        EnvironmentVariables:
+        - Name: IMAGE_REPO_NAME
+          Type: PLAINTEXT
+          Value: !Ref LambdaOpenSearchSetupEcrRepositoryName
+        - Name: AWS_ACCOUNT_ID
+          Type: PLAINTEXT
+          Value: !Ref AWS::AccountId
+      Source:
+        Type: GITHUB
+        Location: https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud
+        BuildSpec: containers/lambda_setup_opensearch/buildspec.yml
+        GitCloneDepth: 1
+      SourceVersion: main
+      TimeoutInMinutes: 10
+
+  LambdaOpenSearchSetupRepository: 
+    Type: AWS::ECR::Repository
+    Properties: 
+      RepositoryName: !Ref LambdaOpenSearchSetupEcrRepositoryName
+      ImageScanningConfiguration: 
+        ScanOnPush: true
+
+  LambdaOpenSearchSetupCodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      RoleName: !Sub ${NameTag}-lambda-os-setup-codebuild-role
+      ManagedPolicyArns:
+        - !Ref LambdaOpenSearchSetupCodeBuildPolicy
+
+  LambdaOpenSearchSetupCodeBuildPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Permissions needed for CodeBuild, ECR, and CloudWatch
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: CloudWatchLogsAccess
+            Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource:
+              - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/chatbot_prod_lambda_opensearch_setup
+              - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/chatbot_prod_lambda_opensearch_setup:*
+          - Sid: CodebuildAccess
+            Effect: Allow
+            Action:
+              - codebuild:CreateReportGroup
+              - codebuild:CreateReport
+              - codebuild:UpdateReport
+              - codebuild:BatchPutTestCases
+              - codebuild:BatchPutCodeCoverages
+            Resource:
+              - !Sub arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:report-group/chatbot_prod_lambda_opensearch_setup-*
+          - Sid: EcrGetAuthorizationToken
+            Effect: Allow
+            Action:
+              - ecr:GetAuthorizationToken
+            Resource: "*"
+          - Sid: EcrAccess
+            Effect: Allow
+            Action:
+              - ecr:BatchGetImage
+              - ecr:InitiateLayerUpload
+              - ecr:UploadLayerPart
+              - ecr:CompleteLayerUpload
+              - ecr:BatchCheckLayerAvailability
+              - ecr:GetDownloadUrlForLayer
+              - ecr:PutImage
+            Resource: 
+              - !Sub arn:${AWS::Partition}:ecr:${AWS::Region}:${AWS::AccountId}:repository/chatbot_prod_lambda_setup_opensearch
+              - !Sub arn:${AWS::Partition}:ecr:${AWS::Region}:${AWS::AccountId}:repository/chatbot_prod_lambda_setup_opensearch:*
+
+# Streamlit container CodeBuild, ECR, and IAM role
+  StreamlitContainerCodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: chatbot_prod_streamlit
+      Description: Builds container image for ECS Streamlit front end
+      ServiceRole: !GetAtt StreamlitContainerCodeBuildProjectServiceRole.Arn
+      Artifacts:
+        Type: no_artifacts
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:5.0
+        PrivilegedMode: true
+        EnvironmentVariables:
+        - Name: IMAGE_REPO_NAME
+          Type: PLAINTEXT
+          Value: !Ref StreamlitImageEcrRepositoryName
+        - Name: AWS_ACCOUNT_ID
+          Type: PLAINTEXT
+          Value: !Ref AWS::AccountId
+      Source:
+        Type: GITHUB
+        Location: https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud
+        BuildSpec: containers/streamlit/buildspec.yml
+        GitCloneDepth: 1
+      SourceVersion: main
+      TimeoutInMinutes: 10
+
+  StreamlitContainerRepository: 
+    Type: AWS::ECR::Repository
+    Properties: 
+      RepositoryName: !Ref StreamlitImageEcrRepositoryName
+      ImageScanningConfiguration: 
+        ScanOnPush: true
+
+  StreamlitContainerCodeBuildProjectServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      RoleName: !Sub ${NameTag}-streamlit-codebuild-service-role
+      ManagedPolicyArns:
+        - !Ref StreamlitContainerCodeBuildProjectServicePolicy
+
+  StreamlitContainerCodeBuildProjectServicePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Permissions needed for CodeBuild, ECR, and CloudWatch
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: CloudWatchLogsAccess
+            Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource:
+              - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/chatbot_prod_streamlit
+              - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/chatbot_prod_streamlit:*
+          - Sid: CodebuildAccess
+            Effect: Allow
+            Action:
+              - codebuild:CreateReportGroup
+              - codebuild:CreateReport
+              - codebuild:UpdateReport
+              - codebuild:BatchPutTestCases
+              - codebuild:BatchPutCodeCoverages
+            Resource:
+              - !Sub arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:report-group/chatbot_prod_streamlit-*
+          - Sid: EcrGetAuthorizationToken
+            Effect: Allow
+            Action:
+              - ecr:GetAuthorizationToken
+            Resource: "*"
+          - Sid: EcrAccess
+            Effect: Allow
+            Action:
+              - ecr:BatchGetImage
+              - ecr:InitiateLayerUpload
+              - ecr:UploadLayerPart
+              - ecr:CompleteLayerUpload
+              - ecr:BatchCheckLayerAvailability
+              - ecr:GetDownloadUrlForLayer
+              - ecr:PutImage
+            Resource: 
+              - !Sub arn:${AWS::Partition}:ecr:${AWS::Region}:${AWS::AccountId}:repository/${StreamlitImageEcrRepositoryName}
+              - !Sub arn:${AWS::Partition}:ecr:${AWS::Region}:${AWS::AccountId}:repository/${StreamlitImageEcrRepositoryName}:*
