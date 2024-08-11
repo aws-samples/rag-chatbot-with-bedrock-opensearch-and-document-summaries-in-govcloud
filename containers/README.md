@@ -25,7 +25,7 @@ Alternatively, the user may choose to build the container images using another m
 
 If you don't already have a GitHub account, you will need to create one.  Instructions on creating an account are [here](https://docs.github.com/en/get-started/start-your-journey/creating-an-account-on-github).
 
-You will need a GitHub personal access token with permission to read public repositories.  If you don't already have one, instructions to create this are [here](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).  Be sure to keep your token in a safe place.
+You will need a GitHub personal access token with permission to read public repositories.  If you don't already have one, instructions to create this are [here](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).  This procedure was tested successfully using a fine-grained access token.  Be sure to keep your token in a safe place.
 
 Additonal AWS documentation on creating and managing GitHub access in CodeBuild is available [here](https://docs.aws.amazon.com/codebuild/latest/userguide/access-tokens.html).
 
