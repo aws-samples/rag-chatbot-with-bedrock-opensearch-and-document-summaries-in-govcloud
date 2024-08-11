@@ -17,6 +17,7 @@ region_name = session.region_name
 host = os.environ['OPENSEARCH_SERVICE_ENDPOINT']
 summary_index_name = os.environ['OPENSEARCH_SUMMARY_INDEX']
 full_text_index_name = os.environ['OPENSEARCH_FULL_TEXT_INDEX']
+date_index_name = os.environ['OPENSEARCH_DATE_INDEX']
 
 # Get the bucket name
 stack_name = "chatbot-demo"
@@ -74,8 +75,20 @@ for count, key in enumerate(key_list):
     summary_response = opensearch_client.count(index=summary_index_name, body=query)
     # Get the full text count
     full_text_response = opensearch_client.count(index=full_text_index_name, body=query)
+    # Get the document date
+    date_response = opensearch_client.search(index=date_index_name, body=query)
+    try:
+        document_date = date_response["hits"]["hits"][0]["_source"]["document_date"][:10]
+    except:
+        document_date = None
     index_list.append(
-        {'#': count + 1, 'Filename': key, 'Summary Index Count': summary_response['count'], 'Full Text Index Count': full_text_response['count']}
+        {
+            '#': count + 1, 
+            'Filename': key, 
+            'Summary Index Count': summary_response['count'], 
+            'Full Text Index Count': full_text_response['count'],
+            'Date': document_date
+        }
     )
     
 if len(index_list) > 0:    
