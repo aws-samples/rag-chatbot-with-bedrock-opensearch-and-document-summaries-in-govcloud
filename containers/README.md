@@ -7,9 +7,9 @@ Running the chatbot in production-like mode requires three container images to b
 
 The three containers required are:
 
-- **Lambda OpenSearch setup** - Used by a Lambda function that runs once when the chatbot demo CloudFormation stack is complete to perform initial setup of the OpenSearch domain.  The initial setup consists of registering the embedding model and creating the indices in OpenSearch.  The source for this container image is at [/containers/lambda_setup_opensearch](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/containers/lambda_setup_opensearch).
-- **Lambda index** - Used by a Lambda function that handles events in the S3 document repository bucket to index new documents and remove deleted documents from the OpenSearch indices.  The source for this container image is at [/containers/lambda_index](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/containers/lambda_index)
-- **Streamlit web front end** - Used in Elastic Container Service (ECS) to run the Streamlit-based web user interface.  The source for this container image is at [/containers/streamlit](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/containers/streamlit).
+- **Lambda OpenSearch setup** - Used by a Lambda function that runs once when the chatbot demo CloudFormation stack is complete to perform initial setup of the OpenSearch domain.  The initial setup consists of registering the embedding model and creating the indices in OpenSearch.  The source is at [/containers/lambda_setup_opensearch](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/containers/lambda_setup_opensearch).
+- **Lambda index** - Used by a Lambda function that handles events in the S3 document repository bucket to index new documents and remove deleted documents from the OpenSearch indices.  The source is at [/containers/lambda_index](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/containers/lambda_index)
+- **Streamlit web front end** - Used in Elastic Container Service (ECS) to run the Streamlit-based web user interface.  The source is at [/containers/streamlit](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/containers/streamlit).
 
 ### Option #1 - Use container build automation provided in this repository
 
