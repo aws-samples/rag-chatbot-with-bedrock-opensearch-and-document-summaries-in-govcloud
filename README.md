@@ -51,7 +51,7 @@ This chatbot uses the semantic search capability of Amazon OpenSearch to find re
 
 ## Document summary Retrieval Augmented Generation (RAG) technique
 
-The search component includes a document summary feature as an advanced Retrieval Augmented Generation (RAG) technique.  This can improve the relevance of answers by comparing the question posed by the user to summaries of the documents in the document base, and ranking the results of full-text search from those documents with relevant summaries higher.  This approach can help reduce occurrences of search results from mentions in less relevant or authoritative documents.  The feature can be enabled or disabled by setting the parameter ```use_summary``` in the file ```/containers/streamlit/opensearch_retrieve_helper.py```.  More details are in the Tunable parameters section below.  The diagram below illustrates how the document summary process can improve search results.
+The search component includes a document summary feature as an advanced Retrieval Augmented Generation (RAG) technique.  This can improve the relevance of answers by comparing the question posed by the user to summaries of the documents in the document base, and ranking the results of full-text search from those documents with relevant summaries higher.  This approach can help reduce occurrences of search results from mentions in less relevant or authoritative documents.  The feature can be enabled or disabled by setting the parameter ```use_summary``` in the file [/containers/streamlit/opensearch_retrieve_helper.py](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/containers/streamlit/opensearch_retrieve_helper.py).  More details are in the Tunable parameters section below.  The diagram below illustrates how the document summary process can improve search results.
 
 ![image info](images/summary_rag_approach_overview.png)
 
@@ -59,9 +59,9 @@ The search component includes a document summary feature as an advanced Retrieva
 
 For many use cases, documents that are newer are more relevant, since older documents may contain out-of-date information.  This chatbot includes a search component that can lower the likelihood of older documents appearing in search results based on configurable parameters.
 
-To enable this technique, a date must be assigned to each document as it is ingested.  For this demonstration, dates for .pdf and .docx files are set according to each document’s metadata creation date, and for .md files the date is set according to the last modified date in S3.  Other approaches of determining document date may be more appropriate for your use case.  The date of each Document is set in the index_documents_helper.py file in the /containers/lambda_index folder.  Here each document’s date is stored in an OpenSearch index which can later be queried.
+To enable this technique, a date must be assigned to each document as it is ingested.  For this demonstration, dates for .pdf and .docx files are set according to each document’s metadata creation date, and for .md files the date is set according to the last modified date in S3.  Other approaches of determining document date may be more appropriate for your use case.  The date of each Document is set in the [index_documents_helper.py](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/containers/lambda_index/index_documents_helper.py) file in the [/containers/lambda_index](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/containers/lambda_index) folder.  Here each document’s date is stored in an OpenSearch index which can later be queried.
 
-To enable age-based search, the parameter use_date must be set to True and the years_until_no_value must be set to a number of years age where the document no longer has value.  These parameters are located in the file opensearch_retrieve_helper in the ```/containers/streamlit``` folder for production-like deployment and the file ```3_search_indices.ipynb``` in the ```/notebooks/sagemaker_studio``` folder for development and test.
+To enable age-based search, the parameter use_date must be set to True and the years_until_no_value must be set to a number of years age where the document no longer has value.  These parameters are located in the file opensearch_retrieve_helper in the [/containers/streamlit](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/containers/streamlit) folder for production-like deployment and the file [3_search_indices.ipynb](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/sagemaker_studio/notebooks/3_search_indices.ipynb) in the [/sagemaker_studio/notebooks](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/sagemaker_studio/notebooks) folder for development and test.
 
 Based on the above parameters, each full text search relevance score is adjusted in proportion to the document’s age until the ```years_until_no_value``` value is reached, at which point the relevance score is zero.  Full text hits with lower scores are less likely to appear than those with higher scores.  All full text search hits with adjusted relevance scores below the value set in the ```full_text_hit_score_threshold``` parameter are ignored
 
@@ -69,7 +69,7 @@ Based on the above parameters, each full text search relevance score is adjusted
 
 The chatbot includes a harmful content filter enabled by Guardrails for Amazon Bedrock.  This provides configurable thresholds to filter content across hate, insults, sexual, violence, misconduct, and prompt attack.  If a user asks a question, or an answer is retrieved that exceeds the guardrail threshold in any of these categories, the chatbot answers "Sorry, I cannot answer this question." or other block message configured in a CloudFormation stack parameter.
 
-The CloudFormation template deploys a guardrail and a guardrail version.  The ```chat.py``` file in the ```/containers/streamlit``` folder gets the guardrail ID and version from the CloudFormation stack and applies those in every request to Bedrock.
+The CloudFormation template deploys a guardrail and a guardrail version.  The [chat.py](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/containers/streamlit/chat.py) file in the [/containers/streamlit](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/containers/streamlit) folder gets the guardrail ID and version from the CloudFormation stack and applies those in every request to Bedrock.
 
 ## Deployment options
 
@@ -87,12 +87,12 @@ Both deployment options use a common CloudFormation script that creates the foll
 
 ## Development and testing deployment
 
-The development and testing deployment provides the ability to see the code running in a SageMaker Studio environment to understand how it works, try modifications and see the results in real time.  After confirming the changes work as expected, files in the ```/containers``` folder of the code repository can be updated for building container images in the production-like deployment outlined in the section above.
+The development and testing deployment provides the ability to see the code running in a SageMaker Studio environment to understand how it works, try modifications and see the results in real time.  After confirming the changes work as expected, files in the [/containers](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/containers) folder of the code repository can be updated for building container images in the production-like deployment outlined in the section above.
 
 Container build is not required for the development and testing deployment.
 
 ### To deploy for development and testing, the following steps are required:
-**1.	Create the CloudFormation stack located in the ```/cloudformation``` folder in the code repository.**
+**1.	Create the CloudFormation stack using the template located in the [/cloudformation](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/cloudformation) folder in the code repository.**
 
  - Name the stack ```chatbot-demo```.
 
@@ -102,11 +102,11 @@ Container build is not required for the development and testing deployment.
 
 **2. Request access to the Titan Text Express model in Amazon Bedrock** - If you haven't previously requested access to the Titan Text Express foundation model in Amazon Bedrock, you will need to do that using the instructions [here](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html).  If you want to use Llama 3 models in place of Titan Text Express, you will need to also request those models using the same process.
 
-**3.	Create the SageMaker domain** – After the stack is complete, run the script ```create_sagemaker_domain.sh``` in the ```/sagemaker_studio``` folder of the code repository to create a SageMaker domain.  CloudShell in the AWS console is a useful tool to run such a command.
+**3.	Create the SageMaker domain** – After the stack is complete, run the script [create_sagemaker_domain.sh](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/sagemaker_studio/create_sagemaker_domain.sh) in the [/sagemaker_studio](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/sagemaker_studio) folder of the code repository to create a SageMaker domain.  CloudShell in the AWS console is a useful tool to run such a command.
 
 **4.	Create a user in the SageMaker domain** – After the SageMaker domain is created, use the console to create a user in the domain and launch SageMaker Studio.
 
-**5.	Copy the SageMaker files from the code repository to Studio** – After Studio launches, copy the files from the ```/sagemaker_studio/notebooks``` folder of the code repository into the root folder in SageMaker Studio.
+**5.	Copy the SageMaker files from the code repository to Studio** – After Studio launches, copy the files from the [/sagemaker_studio/notebooks](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/sagemaker_studio/notebooks) folder of the code repository into the root folder in SageMaker Studio.
 
 **6.	Provide document base files** – Drop sample document base files into the S3 bucket created by the stack.
 
@@ -165,12 +165,12 @@ See the RAG search configuration section below for details on how to select and 
 
 Several tunable parameters can be changed to best align with the use case.  Default values will work in most cases.
 
-#### /cloudformation/chatbot_demo_cfn.yml
+#### [/cloudformation/chatbot_demo_cfn.yml](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/cloudformation/chatbot_demo_cfn.yml)
 
 - ```FiltersConfig``` in the ```BedrockGuardrail``` resource sets the strength for each type of content filter.  Additional information on the Bedrock Guardrails filter config is available in the AWS documentation at https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-bedrock-guardrail-contentfilterconfig.html
 - Parameter ```BedrockGuardrailsBlockMessage``` sets the message given to the user if Bedrock Guardrails blocks the input or output.
 
-#### /containers/streamlit/rag_search.cfg
+#### [/containers/streamlit/rag_search.cfg](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/containers/streamlit/rag_search.cfg)
 
 - ```Text Gen``` section – These parameters select the foundation model and parameters used to present answers to the users based on the document context retrieved through OpenSearch.  Titan Text Express is the default foundation model for Q&A.  Conservative temperature and topP values are set by default to stay close to the content of the documents provided.  A Llama 3 model may optionally be selected in this section by uncommenting the line for the desired model and commenting other models.  Additional information on setting model parameters is available in the AWS documentation at https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters.html
 
@@ -190,11 +190,11 @@ Several tunable parameters can be changed to best align with the use case.  Defa
 
 - ```S3 Key to Weblink Conversion``` section - These parameters are used for the feature to convert .md file references in search results to corresponding web pages.  Refer to the section [Markdown S3 key to weblink reference feature](#Markdown-S3-key-to-weblink-reference-feature) in this document for more information.
 
-#### /containers/lambda_index/index_documents_helper.py
+#### [/containers/lambda_index/index_documents_helper.py](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/containers/lambda_index/index_documents_helper.py)
 
 - ```text_gen_config``` – This is used to set the configuration for Titan Text Express as the foundation model used to summarize documents used in the document summary index.  Conservative temperature and topP values are set by default to stay close to the original content.  Additional information on these parameters is available in the AWS documentation at https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-titan-text.html
 
-#### /containers/lambda_index/app.py
+#### [/containers/lambda_index/app.py](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/containers/lambda_index/app.py)
 
 - ```max_file_size``` – Sets the maximum file size that will be indexed into OpenSearch.  Use this to filter out documents that are excessively large.  Higher values may exceed the 15 minute maximum run time for Lambda.
 
@@ -227,7 +227,7 @@ By enabling Bedrock invocation logging, you will be able to see the details of a
 
 This feature is for special use cases where markdown formatted source documents in S3 are also the source for a web site accessible to users.  By using this feature, the references provided by the Streamlit user interface can be configured as clickable links to the target web pages.  This can help provide a better user experience by enabling one-click access to web page references.
 
-To use this feature, set the parameters below in the file ```/containers/streamlit/rag_search.cfg```
+To use this feature, set the parameters below in the file [/containers/streamlit/rag_search.cfg](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/containers/streamlit/rag_search.cfg)
 
 - ```use_s3_key_to_weblink_conversion``` – Sets the feature on or off based on the Boolean value True or False.  When set to True, the feature is enabled.
 
@@ -257,7 +257,7 @@ To clean up, perform the following steps:
 
    - In the console, find the SageMaker domain ID.
 
-   - Run the script delete_sagemaker_domain.sh in the sagemaker_studio folder of the code repository to delete the SageMaker domain. CloudShell in the AWS console is a useful tool to run such a command.
+   - Run the script [delete_sagemaker_domain.sh](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/sagemaker_studio/delete_sagemaker_domain.sh) in the [sagemaker_studio folder](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/sagemaker_studio) of the code repository to delete the SageMaker domain. CloudShell in the AWS console is a useful tool to run such a command.
 
    - In the SageMaker console, check the status of the domain.  Wait until the status of the domain changes to deleted.
 
