@@ -127,14 +127,13 @@ The document ingestion pipeline uses S3 event notifications to Simple Queue Serv
 The web front end runs in a container on ECS Fargate behind an Application Load Balancer (ALB).
 
 ### To deploy production-like, the following steps are required:
-**1.	Build the required container images into Elastic Container Registry (ECR).**  AWS CodeBuild may be used for the container build. 
- Buildspec files are provided in the repository.
+**1.	Build the required container images into Elastic Container Registry (ECR).**  A [readme](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/containers/README.md) and a [CloudFormation template](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/containers/chatbot_demo_container_build_cfn.yml) are in the [/containers](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/containers) folder of the repository to create AWS CodeBuild and ECR resources to perform the container build.  Or you can choose to use your own process to build the images and store them in ECR. 
 
- - The Streamlit user interface container is built using files in the code repository folder ```/containers/streamlit```
+ - The Streamlit user interface container is built using files in the code repository folder [/containers/streamlit](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/containers/streamlit).
 
- - The Lambda function container for OpenSearch setup is built using files in the code repository folder ```/containers/lambda_setup_opensearch```
+ - The Lambda function container for OpenSearch setup is built using files in the code repository folder [/containers/lambda_setup_opensearch](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/containers/lambda_setup_opensearch).
 
- - The  Lambda function container for OpenSearch indexing is built using files in the code repository folder ```/containers/lambda_index```
+ - The  Lambda function container for OpenSearch indexing is built using files in the code repository folder [/containers/lambda_index](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/containers/lambda_index).
 
 **2. Request access to the Titan Text Express model in Amazon Bedrock** - If you haven't previously requested access to the Titan Text Express foundation model in Amazon Bedrock, you will need to do that using the instructions [here](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html).  If you want to use Llama 3 models in place of Titan Text Express, you will need to also request those models using the same process.
 
@@ -263,6 +262,8 @@ To clean up, perform the following steps:
    - In the SageMaker console, check the status of the domain.  Wait until the status of the domain changes to deleted.
 
 **3.	Delete the stack** – In the CloudFormation console, select the chatbot-demo stack, choose Delete and confirm.  Deletion will take several minutes.
+
+**4. For production-like deployment, delete ECR and any other resources used for container build** - If you used the provided CloudFormation template to create CodeBuild and ECR repositores, follow the [cleanup instructions in the container readme](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/containers/README.md#Cleanup).  Otherwise, remove container images and any other resources you created.
 
 ## Supported region
 
