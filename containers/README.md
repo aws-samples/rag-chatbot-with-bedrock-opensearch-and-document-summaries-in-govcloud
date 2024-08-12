@@ -65,7 +65,7 @@ You can confirm each container image has been saved in ECR by navigating to ECR 
 
 ## Building the main CloudFormation stack in production-like mode
 
-With the steps above completed, you can deploy the main CloudFormation stack in production-like mode.  Follow the instructions in the main readme file [here](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/README.md#Production-like-deployment).
+With the steps above completed, you can deploy the main CloudFormation stack with the ```DeploymentMode``` parameter set to "Prod".  Follow the instructions in the main readme file [here](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/README.md#Production-like-deployment).
 
 ## Cleanup
 
