@@ -137,7 +137,7 @@ The web front end runs in a container on ECS Fargate behind an Application Load 
 
 **2. Request access to the Titan Text Express model in Amazon Bedrock** - If you haven't previously requested access to the Titan Text Express foundation model in Amazon Bedrock, you will need to do that using the instructions [here](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html).  If you want to use Llama 3 models in place of Titan Text Express, you will need to also request those models using the same process.
 
-**3.	Create the CloudFormation stack located in the ```/cloudformation``` folder in the code repository.**
+**3.	Create the CloudFormation stack located in the [/cloudformation](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/cloudformation) folder in the code repository.**
 
  - Name the stack ```chatbot-demo```.
 
