@@ -178,13 +178,15 @@ Several tunable parameters can be changed to best align with the use case.  Defa
 
 - ```FullTextHitScoreThreshold``` – Defines the percentile cut-off of full text hit scores that will be included in the result.  Any full text results with a relevance score less than this value times the highest result’s relevance score are excluded from the context.
 
-- ```UseSummary``` – If set to True the relevance of all the text in a document from the document summary index is used as part of the overall relevance score for chunks.  If set to false the document summary index is not used, and only the full text relevance scores are used to determine the relevance of chunks.
+- ```IncludeTextInReferences``` - When set to "True" the text of material retrieved in each search will be shown with references.  When set to "False" only the document name and page or section will be shown.  Default is "False".
+
+- ```UseSummary``` – If set to "True" the relevance of all the text in a document from the document summary index is used as part of the overall relevance score for chunks.  If set to "False" the document summary index is not used, and only the full text relevance scores are used to determine the relevance of chunks.  Default is "True".
 
 - ```SummaryWeightOverFullText``` – Sets the weighting of document summary result vs. full text result relevance scores in calculating the overall relevance score of a particular chunk.  Higher values weight the document summary relevance more.  Lower values weight the full text summary relevance more.
 
 - ```SummaryHitScoreThreshold``` – Sets the percentage value used as a cut-off for relevance scores retrieved from the OpenSearch document summary index.  Any document summary results with a relevance score less than this value times the highest document summary result’s relevance score are excluded from the context.
 
-- ```UseDate``` - If set to True the age of each document will be used to adjust the relevance of full text hit scores downward as they age until the ```YearsUntilNoValue``` age is reached, at which point the relevance score will become zero.
+- ```UseDate``` - If set to "True" the age of each document will be used to adjust the relevance of full text hit scores downward as they age until the ```YearsUntilNoValue``` age is reached, at which point the relevance score will become zero.  If set to "False" document date is not used to determine document relevance.  Default is "True".
 
 - ```YearsUntilNoValue``` - Sets the number of years each document may age until it has no value as described above.
 
