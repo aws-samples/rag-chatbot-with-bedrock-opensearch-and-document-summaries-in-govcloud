@@ -179,26 +179,26 @@ def opensearch_query(query_text, opensearch_model_id, config_dict):
                         )
 
     # Sort the hit list by score high to low
-    sorted_list = sorted(hit_sections, key=lambda x: (x['document_score'] * -1, x['document'], x['page'], x['section_heading'], x['section']))
-    
+    sorted_section_list_with_scores = sorted(hit_sections, key=lambda x: (x['document_score'] * -1, x['document'], x['page'], x['section_heading'], x['section']))    
     # Remove the scores and eliminate duplicates in the sorted hit list
-    sorted_list_without_scores = []
+    sorted_section_list_without_scores = []
 
-    for i in sorted_list:
-        sorted_list_without_scores.append(
+    for i in sorted_section_list_with_scores:
+        sorted_section_list_without_scores.append(
             {
                 "document": i['document'],
                 "section": i['section']
             }
         )
 
-    deduplicated_list = {frozenset(item.items()) : item for item in sorted_list_without_scores}.values()
+    deduplicated_section_list = {frozenset(item.items()) : item for item in sorted_section_list_without_scores}.values()
     
     # Retrieve the text of the each section in the hit list and concatenate into a single string as RAG context for the LLM
     rag_text = ""
-    reference_list = []
+    rag_text_list_chunks = []
+    reference_list_with_dupes = []
 
-    for i in sorted_list:
+    for i in sorted_section_list_with_scores:
         query = {
             'size': 1,
             "query": {
@@ -222,24 +222,46 @@ def opensearch_query(query_text, opensearch_model_id, config_dict):
             body = query,
             index = full_text_index_name
         )
-
         # Check to make sure there is a value and that adding this hit will not make the RAG text exceed the maximum length
         if len(response2["hits"]["hits"]) > 0 and (len(rag_text) + len(response2["hits"]["hits"][0]["_source"]["text"]) < config_dict['max_length_rag_text']):
             # Add the text from this hit to the RAG text
             rag_text += response2["hits"]["hits"][0]["_source"]["text"]
-            # Add the reference
+            # Add the reference - used if option to show text with references is not selected
             reference = {
                 "document": i['document'],
                 "page": i['page'],
-                "section_heading": i['section_heading']
+                "section_heading": i['section_heading'],
             }
-            reference_list.append(reference)
-        
+            reference_list_with_dupes.append(reference)
+            # Add the RAG text list item to support showing text with references
+            rag_text_item = {
+                "document": i['document'],
+                "page": i['page'],
+                "section_heading": i['section_heading'],
+                "text": response2["hits"]["hits"][0]["_source"]["text"]
+            }
+            rag_text_list_chunks.append(rag_text_item)        
+
+    # If IncludeTextInReferences is True, build reference list with text
+    if config_dict['include_text_in_references']:
+        reference_list = []
+        for ele in rag_text_list_chunks:
+            temp = False
+            for ele1 in reference_list:
+                if ele1['document'] == ele['document'] and ele1['page'] == ele['page'] and ele1['section_heading'] == ele['section_heading']:
+                    ele1['text'] = ele1['text'] + ele['text'] + " "
+                    temp = True
+                    break
+            if not temp:
+                reference_list.append(ele)
+    # If IncludeTextInReferences is False, deduplicate the reference list without text
+    else:
+        reference_list = {frozenset(item.items()) : item for item in reference_list_with_dupes}.values()
+                        
     # Get the references used to create the RAG text
     reference_text = ""
 
-    reference_list_dedupe = {frozenset(item.items()) : item for item in reference_list}.values()
-    for item in reference_list_dedupe:
+    for item in reference_list:
         # Default document reference is the S3 key
         document = item['document']
         # If use_s3_key_to_weblink_conversion is set then convert document to a weblink
@@ -247,7 +269,7 @@ def opensearch_query(query_text, opensearch_model_id, config_dict):
             if document.startswith(config_dict['s3_key_prefix_to_remove']):
                 document = document.replace(config_dict['s3_key_prefix_to_remove'], config_dict['weblink_prefix'], 1)
             if document.endswith(config_dict['s3_key_suffix_to_remove']):
-                document = document[:-len(config_dict['s3_key_suffix_to_remove'])] + weblink_suffix
+                document = document[:-len(config_dict['s3_key_suffix_to_remove'])] + config_dict['weblink_suffix']
 
         # If there is a page reference, then include it
         if item["page"] is not None:
@@ -260,5 +282,7 @@ def opensearch_query(query_text, opensearch_model_id, config_dict):
             reference_text += "\n- " + document + " heading: " + str(item['section_heading'])
         else:
             reference_text += "\n- " + document
+        if config_dict['include_text_in_references']:
+            reference_text += "\n" + item['text']
 
     return(rag_text, reference_text)

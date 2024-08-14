@@ -10,6 +10,7 @@ def read_rag_search_config():
     # Read the RAG Common parameters
     config_dict['max_length_rag_text'] = config['RAG Common'].getint('MaxLengthRagText', 15000)
     config_dict['full_text_hit_score_threshold'] = config['RAG Common'].getfloat('FullTextHitScoreThreshold', 0.5)
+    config_dict['include_text_in_references'] = config['RAG Common'].getboolean('IncludeTextInReferences', False)
     # Read the RAG Summary parameters
     config_dict['use_summary'] = config['RAG Summary'].getboolean('UseSummary', True)
     config_dict['summary_weight_over_full_text'] = config['RAG Summary'].getfloat('SummaryWeightOverFullText', 1.5)
