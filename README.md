@@ -120,13 +120,13 @@ Leave the **Project directory to clone into** field blank and click the **Clone*
 ```
 sh rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/sagemaker_studio/copy_files_to_sagemaker_studio.sh
 ```
-Navigate to the root SageMaker Studio folder by clicking the folder icon (![image info](images/sagemaker_studio_file_browser_icon.png)) immediately to the left of the repository folder name **/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud**.  In the file navigator root, find the folder **/chatbot** and open it by clicking its name.  Here in the **/chatbot** folder you will see the files neded to run the chatbot in SageMaker Studio.
+Navigate to the root SageMaker Studio folder by clicking the folder icon (![image info](images/sagemaker_studio_file_browser_icon.png)) immediately to the left of the repository folder name **/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud**.  In the file navigator root, find the folder **/chatbot** and open it by double clicking its name.  Here in the **/chatbot** folder you will see the files neded to run the chatbot in SageMaker Studio.
 
 **7.	Provide document base files** – Drop sample document files in .pdf, .docx, or .md format into the S3 bucket created by the stack.  In the S3 console, find the bucket with the name **chatbot-demo-data-*your AWS account ID*** and upload your document files to the root of the bucket.
 
-**8.	Run notebooks in Studio** – To open a notebook, double click its name in the SageMaker Studio file navigator.  As each notebook opens, continue with the default kernel parameters.  Run notebooks 1 and 2 to create and populate the OpenSearch indices.  Optionally, run notebook 3 to present questions and get responses.  Follow the instructions and prerequisites in each notebook.
+**8.	Run notebooks in Studio** – Open the first notebook, **1_create_indices.ipynb** by double clicking its name in the SageMaker Studio file navigator.  In the **Set up notebook environment** window, leave all settings at default and click the **Select** button.  Wait a few minutes until the **Starting notebook kernel...** message clears.  Run all cells in notebook 1 to create the OpenSearch indices.  Once all cells in notebook 1 are complete, open the second notebook, **2_populate_indices_all.ipynb** and run all cells in it to populate the OpenSearch indices with data from the files you uploaded to S3.  Optionally, run notebook 3 to present questions and get responses.  Follow the instructions and prerequisites in each notebook.
 
-**9.	Ask questions in the user interface** – To use the user interface within the Studio environment in single-user mode, follow the instructions in notebook 4.
+**9.	Ask questions in the web user interface hosted from SageMaker Studio** – To use the user interface within the Studio environment in single-user mode, open notebook 4, **4_run_web_user_interface.ipynb** and follow the instructions in it.
 
 ## Production-like deployment
 
