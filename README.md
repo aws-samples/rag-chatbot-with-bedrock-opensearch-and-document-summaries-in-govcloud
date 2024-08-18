@@ -102,22 +102,27 @@ Container build is not required for the development and testing deployment.
 
 **2. Request access to the Titan Text Express model in Amazon Bedrock** - If you haven't previously requested access to the Titan Text Express foundation model in Amazon Bedrock, you will need to do that using the instructions [here](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html).  If you want to use Llama 3 models in place of Titan Text Express, you will need to also request those models using the same process.
 
-**3.	Create the SageMaker domain** – After the stack is complete, run the script [create_sagemaker_domain.sh](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/sagemaker_studio/create_sagemaker_domain.sh) in the [/sagemaker_studio](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/sagemaker_studio) folder of the code repository to create a SageMaker domain.  CloudShell in the AWS console is a useful tool to run such a command.
+**3.	Create the SageMaker domain** – After the stack is complete, run the script [create_sagemaker_domain.sh](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/sagemaker_studio/create_sagemaker_domain.sh) in the [/sagemaker_studio](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/sagemaker_studio) folder of the code repository to create a SageMaker domain.  CloudShell in the AWS console is a useful tool to run such a command.  Download either the entire repository or the script at the link above.  In CloudShell, upload the file using **Actions -> Upload file**.  At the CloudShell prompt, enter the following command:
+```
+sh create_sagemaker_domain.sh
+```
+Go to the SageMaker console and click **Domains**.  Here you'll see the new domain chatbot-demo-domain listed.  Wait until its status changes from **Pending** to **InService** before moving to the next step.
 
-**4.	Create a user in the SageMaker domain** – After the SageMaker domain is created, use the console to create a user in the domain. Launch SageMaker Studio with the user you created.
+**4.	Create a user in the SageMaker domain and launch Studio** – After the SageMaker domain is created and its status is **InService**, use the console to create a user in the domain by clicking the domain named **chatbot-demo-domain** in the console, then in the Domain Details User profile tab that appears, click the **Add user** button. In the Add user profile General settings page that appears, keep the default settings and click **Next**.  In the Studio settings Jupyter Lab version page that appears keep the default settings and click **Submit**.  Launch SageMaker Studio with the user you created by clicking the **Launch** button and then **Studio**.  It will take a few minutes for Studio to start.
 
-**5. Clone the repository into SageMaker Studio** - After SageMaker Studio launches, click the Git icon (![image info](images/sagemaker_studio_git_icon.png)) on the far left.  Choose **Clone a repository**.  In the Clone Git Repository window, enter the URL for this repository:
+**5. Clone the repository into SageMaker Studio** - After SageMaker Studio launches, click the Git icon (![image info](images/sagemaker_studio_git_icon.png)) on the far left panel.  Click the **Clone a Repository** button.  In the Clone Git Repository window, enter the URL for this repository:
 ```
 https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud.git
 ```
+Leave the **Project directory to clone into** field blank and click the **Clone** button.  
 
 **6.	Copy the SageMaker files from the code repository to a folder** – In SageMaker Studio, open a terminal window by selecting **File -> New -> Terminal** from the main menu.  In the terminal, enter the following command:
 ```
 sh rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/sagemaker_studio/copy_files_to_sagemaker_studio.sh
 ```
-Go to the file navigator pane in SageMaker Studio by clicking the file icon (![image info](images/sagemaker_studio_file_browser_icon.png)).  Find the folder **/chatbot** and open it by double clicking its name in the file navigator.  Here you will see the files neded to run the chatbot in SageMaker Studio.
+Navigate to the root SageMaker Studio folder by clicking the folder icon (![image info](images/sagemaker_studio_file_browser_icon.png)) immediately to the left of the repository folder name **/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud**.  In the file navigator root, find the folder **/chatbot** and open it by clicking its name.  Here in the **/chatbot** folder you will see the files neded to run the chatbot in SageMaker Studio.
 
-**7.	Provide document base files** – Drop sample document base files into the S3 bucket created by the stack.
+**7.	Provide document base files** – Drop sample document files in .pdf, .docx, or .md format into the S3 bucket created by the stack.  In the S3 console, find the bucket with the name **chatbot-demo-data-*your AWS account ID*** and upload your document files to the root of the bucket.
 
 **8.	Run notebooks in Studio** – To open a notebook, double click its name in the SageMaker Studio file navigator.  As each notebook opens, continue with the default kernel parameters.  Run notebooks 1 and 2 to create and populate the OpenSearch indices.  Optionally, run notebook 3 to present questions and get responses.  Follow the instructions and prerequisites in each notebook.
 
