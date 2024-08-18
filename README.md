@@ -94,9 +94,9 @@ Container build is not required for the development and testing deployment.
 ### To deploy for development and testing, the following steps are required:
 **1.	Create the CloudFormation stack using the template located in the [/cloudformation](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/cloudformation) folder in the code repository.**
 
- - Name the stack ```chatbot-demo```.
+ - **Important:** Name the stack ```chatbot-demo```.
 
- - Set the CloudFormation stack parameter ```DeploymentMode``` to "DevTest"
+ - Set the CloudFormation stack parameter ```DeploymentMode``` to **DevTest**
         
  - It will take 20-30 minutes for the stack to complete.
 
@@ -104,15 +104,17 @@ Container build is not required for the development and testing deployment.
 
 **3.	Create the SageMaker domain** – After the stack is complete, run the script [create_sagemaker_domain.sh](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/sagemaker_studio/create_sagemaker_domain.sh) in the [/sagemaker_studio](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/sagemaker_studio) folder of the code repository to create a SageMaker domain.  CloudShell in the AWS console is a useful tool to run such a command.
 
-**4.	Create a user in the SageMaker domain** – After the SageMaker domain is created, use the console to create a user in the domain and launch SageMaker Studio.
+**4.	Create a user in the SageMaker domain** – After the SageMaker domain is created, use the console to create a user in the domain. Launch SageMaker Studio with the user you created.
 
-**5.	Copy the SageMaker files from the code repository to Studio** – After Studio launches, copy the files from the [/sagemaker_studio/notebooks](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/sagemaker_studio/notebooks) folder of the code repository into the root folder in SageMaker Studio.
+**5. Clone the repository into SageMaker Studio** - After SageMaker Studio launches, click the Git icon ![image info](images/sagemaker_studio_git_icon.png) on the far left.  Choose **Clone a repository**.  In the Clone Git Repository window, enter the URL for this repository: ```https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud.git```.
 
-**6.	Provide document base files** – Drop sample document base files into the S3 bucket created by the stack.
+**6.	Copy the SageMaker files from the code repository to a folder** – In SageMaker Studio, open a terminal window by selecting **File -> New -> Terminal** from the main menu.  In the terminal, enter the following command: ```sh rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/sagemaker_studio/copy_files_to_sagemaker_studio.sh```.  Go to the file navigator pane in SageMaker Studio by clicking the file icon ![image info](images/sagemaker_studio_git_icon.png).  Find the folder **/chatbot** and open it by double clicking its name in the file navigator.  Here you will see the files neded to run the chatbot in SageMaker Studio.
 
-**7.	Run notebooks in Studio** – Run notebooks 1 and 2 to create and populate the OpenSearch indices.  Optionally, run notebook 3 to present questions and get responses.  Follow the instructions and prerequisites in each notebook.
+**7.	Provide document base files** – Drop sample document base files into the S3 bucket created by the stack.
 
-**8.	Ask questions in the user interface** – To use the user interface within the Studio environment in single-user mode, follow the instructions in notebook 4.
+**8.	Run notebooks in Studio** – To open a notebook, double click its name in the SageMaker Studio file navigator.  As each notebook opens, continue with the default kernel parameters.  Run notebooks 1 and 2 to create and populate the OpenSearch indices.  Optionally, run notebook 3 to present questions and get responses.  Follow the instructions and prerequisites in each notebook.
+
+**9.	Ask questions in the user interface** – To use the user interface within the Studio environment in single-user mode, follow the instructions in notebook 4.
 
 ## Production-like deployment
 
@@ -139,11 +141,11 @@ The web front end runs in a container on ECS Fargate behind an Application Load 
 
 **3.	Create the CloudFormation stack located in the [/cloudformation](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/cloudformation) folder in the code repository.**
 
- - Name the stack ```chatbot-demo```.
+ - **Impportant:** Name the stack ```chatbot-demo```.
 
  - Set the CloudFormation stack parameters for the ECR repository names to point to the container images built in the step above: ```LambdaIndexEcrRepositoryName```, ```LambdaOpenSearchSetupEcrRepositoryName```, ```StreamlitImageEcrRepositoryName```
 
- - Set the CloudFormation stack parameter ```DeploymentMode``` to "Prod"
+ - Set the CloudFormation stack parameter ```DeploymentMode``` to **Prod**
 
 **4.	Upload document base files to S3** – After the stack is complete, drop sample document base files into the S3 bucket created by the stack and wait several minutes for file indexing in OpenSearch to complete.  You can monitor the progress of indexing by monitoring the CloudWatch logs for the lambda function ```chatbot_prod_lambda_index```, or by monitoring in the web user interface using the document index status page desribed [here](#Document-index-status-feature).
 
@@ -178,15 +180,15 @@ Several tunable parameters can be changed to best align with the use case.  Defa
 
 - ```FullTextHitScoreThreshold``` – Defines the percentile cut-off of full text hit scores that will be included in the result.  Any full text results with a relevance score less than this value times the highest result’s relevance score are excluded from the context.
 
-- ```IncludeTextInReferences``` - When set to "True" the text of material retrieved in each search will be shown with references.  When set to "False" only the document name and page or section will be shown.  Default is "False".
+- ```IncludeTextInReferences``` - When set to **True** the text of material retrieved in each search will be shown with references.  When set to **False** only the document name and page or section will be shown.  Default is **False**.
 
-- ```UseSummary``` – If set to "True" the relevance of all the text in a document from the document summary index is used as part of the overall relevance score for chunks.  If set to "False" the document summary index is not used, and only the full text relevance scores are used to determine the relevance of chunks.  Default is "True".
+- ```UseSummary``` – If set to **True** the relevance of all the text in a document from the document summary index is used as part of the overall relevance score for chunks.  If set to **False** the document summary index is not used, and only the full text relevance scores are used to determine the relevance of chunks.  Default is **True**.
 
 - ```SummaryWeightOverFullText``` – Sets the weighting of document summary result vs. full text result relevance scores in calculating the overall relevance score of a particular chunk.  Higher values weight the document summary relevance more.  Lower values weight the full text summary relevance more.
 
 - ```SummaryHitScoreThreshold``` – Sets the percentage value used as a cut-off for relevance scores retrieved from the OpenSearch document summary index.  Any document summary results with a relevance score less than this value times the highest document summary result’s relevance score are excluded from the context.
 
-- ```UseDate``` - If set to "True" the age of each document will be used to adjust the relevance of full text hit scores downward as they age until the ```YearsUntilNoValue``` age is reached, at which point the relevance score will become zero.  If set to "False" document date is not used to determine document relevance.  Default is "True".
+- ```UseDate``` - If set to **True** the age of each document will be used to adjust the relevance of full text hit scores downward as they age until the ```YearsUntilNoValue``` age is reached, at which point the relevance score will become zero.  If set to **False** document date is not used to determine document relevance.  Default is **True**.
 
 - ```YearsUntilNoValue``` - Sets the number of years each document may age until it has no value as described above.
 
@@ -204,7 +206,7 @@ Several tunable parameters can be changed to best align with the use case.  Defa
 
 ## Document index status feature
 
-The indexing status of the documents in the S3 bucket created by the CloudFormation stack can be viewed by selecting "Index status" in the side menu of the web user interface.
+The indexing status of the documents in the S3 bucket created by the CloudFormation stack can be viewed by selecting **Index status** in the side menu of the web user interface.
 
 This shows a list of all the documents in the S3 bucket and the number of summary and full text index chunks in OpenSearch.  If zero chunks are shown then indexing has likely not yet begun for that document.  The date of each document as recorded in the date index can also be viewed by scrolling to the right. 
 
@@ -215,9 +217,9 @@ The screenshot below shows an example of the feature.
 ## Bedrock invocations CloudWatch dashboard feature
 
 The CloudFormation stack can deploy a CloudWatch Logs group and a CloudWatch dashboard to provide observability on Bedrock invocations. 
- This will show the number of requests made using Bedrock Guardrails, the number of blocked requests, and the number of Bedrock tokens consumed.  These resources will be deployed if the CloudFormation stack parameter ```CreateBedrockInvocationLogs``` is set to "yes".
+ This will show the number of requests made using Bedrock Guardrails, the number of blocked requests, and the number of Bedrock tokens consumed.  These resources will be deployed if the CloudFormation stack parameter ```CreateBedrockInvocationLogs``` is set to **yes**.
 
-When this option is enabled, the stack deploys a Lambda custom resource that will update the Bedrock invocation logging setting for the account with a new IAM role and CloudWatch Logs group.  This will overwrite any existing Bedrock invocation logging setting in the account.  For this reason, the default value for the ```CreateBedrockInvocationLogs``` parameter is "no".  Set the parameter to "yes" if you are sure you will not interfere with existing Bedrock invocation logging in the account.
+When this option is enabled, the stack deploys a Lambda custom resource that will update the Bedrock invocation logging setting for the account with a new IAM role and CloudWatch Logs group.  This will overwrite any existing Bedrock invocation logging setting in the account.  For this reason, the default value for the ```CreateBedrockInvocationLogs``` parameter is **no**.  Set the parameter to **yes** if you are sure you will not interfere with existing Bedrock invocation logging in the account.
 
 The screenshot below shows an example of the CloudWatch dashboard.
 
