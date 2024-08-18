@@ -25,13 +25,13 @@ Completing this demonstration from setup to cleanup will take approximately 1.5 
 ## Architecture
 
 The architecture makes use of the following major components in AWS GovCloud:
-- Amazon S3 bucket to store the documents used as the knowledge repository
-- Amazon OpenSearch domain to host a searchable index of the document repository with semantic search capability
-- Foundation Model on Amazon Bedrock to serve requests to answer user questions based on OpenSearch content matches
-- Amazon SageMaker Studio to host demonstration notebooks and web user interface in development and test deployment
-- Elastic Container Service (ECS) to host the web user interface in production-like deployment
-- A Virtual Private Cloud (VPC) to support the OpenSearch, SageMaker Studio and ECS components
-- AWS CloudFormation to build the cloud infrastructure used by the demonstration
+- **Amazon S3 bucket** to store the documents used as the knowledge repository
+- **Amazon OpenSearch domain** to host a searchable index of the document repository with semantic search capability
+- Foundation Model on **Amazon Bedrock** to serve requests to answer user questions based on OpenSearch content matches
+- **Amazon SageMaker Studio** to host demonstration notebooks and web user interface in development and test deployment
+- **Elastic Container Service (ECS)** to host the web user interface in production-like deployment
+- A **Virtual Private Cloud (VPC)** to support the OpenSearch, SageMaker Studio and ECS components
+- **AWS CloudFormation** to build the cloud infrastructure used by the demonstration
 
 The diagram below illustrates the high-level architecture.
 
@@ -100,7 +100,7 @@ Container build is not required for the development and testing deployment.
         
  - It will take 20-30 minutes for the stack to complete.
 
-**2. Request access to the Titan Text Express model in Amazon Bedrock** - If you haven't previously requested access to the Titan Text Express foundation model in Amazon Bedrock, you will need to do that using the instructions [here](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html).  If you want to use Llama 3 models in place of Titan Text Express, you will need to also request those models using the same process.
+**2. Request access to the Titan Text Express model in Amazon Bedrock** - If you haven't previously requested access to the Titan Text Express foundation model in Amazon Bedrock for your account, you will need to do that using the instructions [here](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html).  If you want to use Llama 3 models in place of Titan Text Express, you will need to also request those models using the same process.
 
 **3.	Create the SageMaker domain** – After the stack is complete, run the script [create_sagemaker_domain.sh](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/sagemaker_studio/create_sagemaker_domain.sh) in the [/sagemaker_studio](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/sagemaker_studio) folder of the code repository to create a SageMaker domain.  CloudShell in the AWS console is a useful tool to run such a command.  Download either the entire repository or the script at the link above to your local machine.  In CloudShell, click **Actions -> Upload file** and select the file from your local machine.  After the file is uploaded, at the CloudShell prompt, enter the following command:
 ```
@@ -126,7 +126,7 @@ In the SageMaker Studio file browser pane on the left, navigate to the root Sage
 
 **8.	Run notebooks in Studio** – Open the first notebook, **1_create_indices.ipynb** by double clicking its name in the SageMaker Studio file navigator.  In the **Set up notebook environment** window, leave all settings at default and click the **Select** button.  Wait a few minutes until the **Starting notebook kernel...** message clears.  Run all cells in notebook 1 to create the OpenSearch indices.  Once all cells in notebook 1 are complete, open the second notebook, **2_populate_indices_all.ipynb** and run all cells in it to populate the OpenSearch indices with data from the files you uploaded to S3.  Optionally, run notebook 3 to present questions and get responses.  Follow the instructions and prerequisites in each notebook.
 
-**9.	Ask questions in the web user interface hosted from SageMaker Studio** – To use the user interface within the Studio environment in single-user mode, open notebook 4, **4_run_web_user_interface.ipynb** and follow the instructions in it.
+**9.	Ask questions in the web user interface hosted from SageMaker Studio** – To launch the user interface within the Studio environment in single-user mode, open notebook 4, **4_run_web_user_interface.ipynb** and follow the instructions in it.
 
 ## Production-like deployment
 
@@ -143,11 +143,11 @@ The web front end runs in a container on ECS Fargate behind an Application Load 
 ### To deploy production-like, the following steps are required:
 **1.	Build the required container images into Elastic Container Registry (ECR).**  A [readme](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/containers/README.md) and a [CloudFormation template](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/containers/chatbot_demo_container_build_cfn.yml) are in the [/containers](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/containers) folder of the repository to create AWS CodeBuild and ECR resources to perform the container build.  Or you can choose to use your own process to build the images and store them in ECR. 
 
- - The Streamlit user interface container is built using files in the code repository folder [/containers/streamlit](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/containers/streamlit).
+ - The **Streamlit user interface container** is built using files in the code repository folder [/containers/streamlit](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/containers/streamlit).
 
- - The Lambda function container for OpenSearch setup is built using files in the code repository folder [/containers/lambda_setup_opensearch](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/containers/lambda_setup_opensearch).
+ - The **Lambda function container for OpenSearch setup** is built using files in the code repository folder [/containers/lambda_setup_opensearch](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/containers/lambda_setup_opensearch).
 
- - The  Lambda function container for OpenSearch indexing is built using files in the code repository folder [/containers/lambda_index](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/containers/lambda_index).
+ - The  **Lambda function container for OpenSearch indexing** is built using files in the code repository folder [/containers/lambda_index](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/containers/lambda_index).
 
 **2. Request access to the Titan Text Express model in Amazon Bedrock** - If you haven't previously requested access to the Titan Text Express foundation model in Amazon Bedrock, you will need to do that using the instructions [here](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html).  If you want to use Llama 3 models in place of Titan Text Express, you will need to also request those models using the same process.
 
@@ -245,7 +245,7 @@ This feature is for special use cases where markdown formatted source documents 
 
 To use this feature, set the parameters below in the file [/containers/streamlit/rag_search.cfg](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/containers/streamlit/rag_search.cfg)
 
-- ```use_s3_key_to_weblink_conversion``` – Sets the feature on or off based on the Boolean value True or False.  When set to True, the feature is enabled.
+- ```use_s3_key_to_weblink_conversion``` – Sets the feature on or off based on the Boolean value **True** or **False**.  When set to **True**, the feature is enabled.
 
 - ```s3_key_prefix_to_remove``` – Sets the portion of the S3 prefix to remove from markdown file S3 keys.
 
@@ -253,17 +253,17 @@ To use this feature, set the parameters below in the file [/containers/streamlit
 
 - ```s3_key_suffix_to_remove``` – Sets the S3 key suffix to remove.
 
-- ```weblink_suffi```x – Sets the suffix to add to the S3 key value after the ```s3_key_suffix_to_remove``` is removed.
+- ```weblink_suffix``` – Sets the suffix to add to the S3 key value after the ```s3_key_suffix_to_remove``` is removed.
 
 ## Cleanup
 
 To clean up, perform the following steps:
 
-**1. Empty the S3 document bucket** – In the S3 console, select the bucket created by the CloudFormation stack, click the Empty button and confirm.
+**1. Empty the S3 document bucket** – In the S3 console, select the bucket created by the CloudFormation stack, click the **Empty** button and confirm.
 
 **2.	In deveopment and testing mode the SageMaker domain must be deleted with the following procedure:**
 
- - **Shut down Studio** – If SageMaker Studio is running for a user created under the demonstration domain, shut it down by selecting Shut Down under the File menu and then selecting Shutdown All.
+ - **Shut down Studio** – If SageMaker Studio is running for a user created under the demonstration domain, shut it down by selecting **Shut Down** under the **File** menu and then selecting **Shutdown All**.
 
  - **Delete applications** – In the SageMaker console, select the domain, then select the user.  If an application is still running for the user, delete it and wait for all pending application deletions to complete.
 
@@ -271,21 +271,19 @@ To clean up, perform the following steps:
 
  - **Delete SageMaker domain**
 
-   - In the console, find the SageMaker domain ID.
-
    - Run the script [delete_sagemaker_domain.sh](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/sagemaker_studio/delete_sagemaker_domain.sh) in the [sagemaker_studio folder](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/tree/main/sagemaker_studio) of the code repository to delete the SageMaker domain. CloudShell in the AWS console is a useful tool to run such a command.
 
-   - In the SageMaker console, check the status of the domain.  Wait until the status of the domain changes to deleted.
+   - In the SageMaker console, check the status of the domain.  Wait until the status of the domain changes to **Deleted**.
 
-**3.	Delete the stack** – In the CloudFormation console, select the chatbot-demo stack, choose Delete and confirm.  Deletion will take several minutes.
+**3.	Delete the stack** – In the CloudFormation console, select the **chatbot-demo** stack, choose **Delete** and confirm.  Deletion will take several minutes.
 
 **4. For production-like deployment, delete ECR and any other resources used for container build** - If you used the provided CloudFormation template to create CodeBuild and ECR repositores, follow the [cleanup instructions in the container readme](https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/containers/README.md#Cleanup).  Otherwise, remove container images and any other resources you created.
 
 ## Supported region
 
-This repository is intended for use in the AWS ```us-gov-west-1``` region.
+This repository is intended for use in the AWS **us-gov-west-1** region.
 
-The code in this repository has also worked in the ```us-east-1``` region.  Regions and partitions are referred by parameters in code to help enable region portability.  However, testing in regions outside ```us-gov-west-1``` is limited.  When deploying in development and test mode use SageMaker Studio Classic.
+The code in this repository has also worked in the **us-east-1** region.  Regions and partitions are referred by parameters in code to help enable region portability.  However, testing in regions outside **us-gov-west-1** is limited.  When deploying in development and test mode use **SageMaker Studio Classic**.
 
 ## Contributors
 
