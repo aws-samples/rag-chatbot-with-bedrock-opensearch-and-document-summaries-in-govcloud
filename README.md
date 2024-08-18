@@ -111,7 +111,11 @@ Container build is not required for the development and testing deployment.
 https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud.git
 ```
 
-**6.	Copy the SageMaker files from the code repository to a folder** – In SageMaker Studio, open a terminal window by selecting **File -> New -> Terminal** from the main menu.  In the terminal, enter the following command: ```sh rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/sagemaker_studio/copy_files_to_sagemaker_studio.sh```.  Go to the file navigator pane in SageMaker Studio by clicking the file icon (![image info](images/sagemaker_studio_file_browser_icon.png)).  Find the folder **/chatbot** and open it by double clicking its name in the file navigator.  Here you will see the files neded to run the chatbot in SageMaker Studio.
+**6.	Copy the SageMaker files from the code repository to a folder** – In SageMaker Studio, open a terminal window by selecting **File -> New -> Terminal** from the main menu.  In the terminal, enter the following command:
+```
+sh rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/sagemaker_studio/copy_files_to_sagemaker_studio.sh
+```
+Go to the file navigator pane in SageMaker Studio by clicking the file icon (![image info](images/sagemaker_studio_file_browser_icon.png)).  Find the folder **/chatbot** and open it by double clicking its name in the file navigator.  Here you will see the files neded to run the chatbot in SageMaker Studio.
 
 **7.	Provide document base files** – Drop sample document base files into the S3 bucket created by the stack.
 
