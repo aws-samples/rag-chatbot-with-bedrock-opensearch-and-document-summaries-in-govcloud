@@ -1,3 +1,12 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+
+## Script to copy cloned repository files in SageMaker Studio folder /chatbot to run in dev/test mode
+
+# Read the full readme at the address below.  Create the stack in dev/test mode.
+# In SageMaker Studio, clone the repository at the address below.  Then run this script in a Studio terminal to copy the files needed to run the chatbot.
+# https://github.com/aws-samples/rag-chatbot-with-bedrock-opensearch-and-document-summaries-in-govcloud/blob/main/cloudformation/chatbot_demo_cfn.yml
+
 #!/bin/bash
 mkdir /home/sagemaker-user/chatbot
 cd /home/sagemaker-user/chatbot
