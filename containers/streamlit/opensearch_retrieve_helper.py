@@ -275,10 +275,10 @@ def opensearch_query(query_text, opensearch_model_id, config_dict):
         if item["page"] is not None:
             reference_text += "\n- " + document + " page: " + str(item['page'])
         # If there is a section heading reference and weblink conversion is selected then add it to URL
-        elif item["section_heading"] is not None and use_s3_key_to_weblink_conversion:
+        elif item["section_heading"] is not None and config_dict['use_s3_key_to_weblink_conversion']:
             reference_text += "\n- " + document + "#" + quote(str(item['section_heading'])) + " "
         # If there is a section heading reference and weblink conversion is not selected then add it as text
-        elif item["section_heading"] is not None and use_s3_key_to_weblink_conversion is False:
+        elif item["section_heading"] is not None and config_dict['use_s3_key_to_weblink_conversion'] is False:
             reference_text += "\n- " + document + " heading: " + str(item['section_heading'])
         else:
             reference_text += "\n- " + document
